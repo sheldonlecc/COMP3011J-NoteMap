@@ -13,7 +13,9 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+// [删除] android.widget.ImageButton; // 我们不再使用 ImageButton
 import android.widget.Toast;
+
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -41,14 +43,17 @@ import com.amap.api.maps.model.MyLocationStyle;
 import com.amap.api.services.core.PoiItem;
 import com.amap.api.services.poisearch.PoiResult;
 import com.amap.api.services.poisearch.PoiSearch;
-import androidx.appcompat.widget.SearchView; // 注意导入的是 androidx.appcompat
-
-import com.noworld.notemap.utils.MapUtil; // 我们会用到你已有的工具类
+import androidx.appcompat.widget.SearchView;
+import com.amap.api.maps.model.MarkerOptions;
+import com.amap.api.services.poisearch.PoiSearchV2;
+import com.noworld.notemap.utils.MapUtil;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.noworld.notemap.R;
 
 import org.json.JSONObject;
+
+// [删除] import android.widget.ImageButton; // 已删除
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -89,20 +94,21 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private UiSettings mUiSettings;
 
     private MapView mp_view;
-    private FloatingActionButton fab_marker_car;
-    private FloatingActionButton fab_car_del;
-    private FloatingActionButton fab_car_location;
+    // [修改] 保留右上角的 FAB
     private FloatingActionButton fab_zoom_large;
     private FloatingActionButton fab_zoom_small;
     private FloatingActionButton fab_location;
-    private FloatingActionButton fab_navigation;
-    private FloatingActionButton fab_picture;
 
     // [新增] 搜索功能相关的变量
     private SearchView searchView;
     private PoiSearch.Query query;
     private PoiSearch poiSearch;
     private java.util.List<Marker> poiMarkers = new java.util.ArrayList<>();
+
+    // [修改] 新的底部 FAB 按钮变量 (类型从 ImageButton 改为 FloatingActionButton)
+    private FloatingActionButton fab_my_location;
+    private FloatingActionButton fab_add_note;
+    private FloatingActionButton fab_user_profile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,15 +123,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             showMsg(result ? "已获取到定位权限" : "权限申请失败");
 
         });
-
-
-//        MapView mapView = (MapView) findViewById(R.id.map);
-//        mapView.onCreate(savedInstanceState);// 此方法必须重写
-//        AMap aMap = mapView.getMap();
-
-//        aMap.setTrafficEnabled(true);// 显示实时交通状况
-//        //地图模式可选类型：MAP_TYPE_NORMAL,MAP_TYPE_SATELLITE,MAP_TYPE_NIGHT
-//        aMap.setMapType(AMap.MAP_TYPE_SATELLITE);// 卫星地图模式
 
         // 初始化定位
         initLocation();
@@ -219,10 +216,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             mUiSettings.setRotateGesturesEnabled(true); // [新增] 允许用户手动旋转地图
             // 创建定位蓝点的样式
             MyLocationStyle myLocationStyle = new MyLocationStyle();
-            // 自定义定位蓝点图标
-            // Bitmap originalBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.gps_point);
-            // Bitmap scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, 50, 50, false);
-            // myLocationStyle.myLocationIcon(BitmapDescriptorFactory.fromResource(R.drawable.gps_point));
             // 自定义精度范围的圆形边框颜色  都为0则透明
             myLocationStyle.strokeColor(Color.argb(0, 0, 0, 0));
             // 自定义精度范围的圆形边框宽度  0 无宽度
@@ -232,31 +225,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             // 设置圆形的填充颜色  都为0则透明
             myLocationStyle.radiusFillColor(Color.argb(0, 0, 0, 0));
 
-            // 设置定位蓝点展现模式
-            // 只定位一次。
-            // myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_SHOW);
-            // 定位一次，且将视角移动到地图中心点。
-            // myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATE) ;
-            // 连续定位、且将视角移动到地图中心点，定位蓝点跟随设备移动。（1秒1次定位）
-            // myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_FOLLOW) ;
-            // 连续定位、且将视角移动到地图中心点，地图依照设备方向旋转，定位点会跟随设备移动。（1秒1次定位）
-            // myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_MAP_ROTATE);
-            // 连续定位、且将视角移动到地图中心点，定位点依照设备方向旋转，并且会跟随设备移动。（1秒1次定位）默认执行此种模式。
-            // myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE);
-            //以下三种模式从5.1.0版本开始提供
-            // 连续定位、蓝点不会移动到地图中心点，定位点依照设备方向旋转，并且蓝点会跟随设备移动。
-            // myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER);
-            // 连续定位、蓝点不会移动到地图中心点，并且蓝点会跟随设备移动。
-            // myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_FOLLOW_NO_CENTER);
-            // 连续定位、蓝点不会移动到地图中心点，地图依照设备方向旋转，并且蓝点会跟随设备移动。
             // [修改]
-            // 我们上次把它改成了 LOCATION_TYPE_LOCATE (纯定位)
-            // 现在我们把它改回/改成 LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER
-            // 这个模式的含义是：图钉(LOCATION)旋转，但地图(MAP)不旋转，也不自动居中(NO_CENTER)
-            //
-            // 这正是你最初代码 里的设置，
-            // 它现在应该可以正常工作了，因为我们用 setRotateGesturesEnabled(true)
-            // 明确“解锁”了地图的手动旋转。
             myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER);
 
             // 设置定位蓝点的样式
@@ -268,8 +237,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             // 设置为true表示启动显示定位蓝点，false表示隐藏定位蓝点并不进行定位，默认是false。
             aMap.setMyLocationEnabled(true);
 
-            //设置最小缩放等级为12 ，缩放级别范围为[3, 20]
-            // aMap.setMinZoomLevel(18);
             // 开启室内地图
             aMap.showIndoorMap(true);
             // 地图控件设置
@@ -362,23 +329,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             Log.i(TAG, "定位成功");
 //            showMsg("定位成功");
             latLng = new LatLng(aMapLocation.getLatitude(), aMapLocation.getLongitude()); // 获取当前latlng坐标
-//            aMapLocation.getLocationType();//获取当前定位结果来源，如网络定位结果，详见定位类型表
-//            double resultx = aMapLocation.getLatitude();//获取纬度
-//            double resulty = aMapLocation.getLongitude();//获取经度
-//            aMapLocation.getAccuracy();//获取精度信息
-//            aMapLocation.getAddress();//详细地址，如果option中设置isNeedAddress为false，则没有此结果，网络定位结果中会有地址信息，GPS定位不返回地址信息。
-//            aMapLocation.getCountry();//国家信息
-//            aMapLocation.getProvince();//省信息
-//            aMapLocation.getCity();//城市信息
-//            String result = aMapLocation.getDistrict();//城区信息
-//            aMapLocation.getStreet();//街道信息
-//            aMapLocation.getStreetNum();//街道门牌号信息
-//            aMapLocation.getCityCode();//城市编码
-//            aMapLocation.getAdCode();//地区编码
-//            aMapLocation.getAoiName();//获取当前定位点的AOI信息
-//            aMapLocation.getBuildingId();//获取当前室内定位的建筑物Id
-//            aMapLocation.getFloor();//获取当前室内定位的楼层
-//            aMapLocation.getGpsAccuracyStatus();//获取GPS的当前状态
 
             // 停止定位
 //            stopLocation();
@@ -402,38 +352,32 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
     private void initView() {
         mp_view = findViewById(R.id.mp_view);
-        fab_marker_car = findViewById(R.id.fab_marker_car);
-        fab_car_del = findViewById(R.id.fab_car_del);
-        fab_car_location = findViewById(R.id.fab_car_location);
+        // [修改] 只绑定保留的 FAB
         fab_zoom_large = findViewById(R.id.fab_zoom_large);
         fab_zoom_small = findViewById(R.id.fab_zoom_small);
         fab_location = findViewById(R.id.fab_location);
-        fab_navigation = findViewById(R.id.fab_navigation);
-        fab_picture = findViewById(R.id.fab_picture);
-        fab_marker_car.setOnClickListener(this);
-        fab_car_del.setOnClickListener(this);
-        fab_car_location.setOnClickListener(this);
+
+        // [修改] 只为保留的 FAB 设置监听
         fab_zoom_large.setOnClickListener(this);
         fab_zoom_small.setOnClickListener(this);
         fab_location.setOnClickListener(this);
-        fab_navigation.setOnClickListener(this);
-        fab_picture.setOnClickListener(this);
-        searchView = findViewById(R.id.search_view);
-        fab_picture.setOnLongClickListener(view -> {
-            // 在这里处理长按事件
-            Log.d(TAG, "长按了picture按钮");
-            // 拍摄/导入车辆位置图片
-            new AlertDialog.Builder(this)
-                    .setTitle("车辆位置图片")
-                    .setMessage("是否拍摄/导入车辆位置图片？")
-                    .setPositiveButton("拍摄/导入", (dialog, which) -> {
-                        showImagePickerDialog();
-                    })
-                    .setNeutralButton("取消", null)
-                    .show();
-            return true;
-        });
 
+        searchView = findViewById(R.id.search_view);
+
+        // [删除] 旧的 fab_picture 长按监听
+        // fab_picture.setOnLongClickListener(view -> { ... });
+
+        // [修改] 绑定新的底部导航栏 FAB 按钮 (ID 已修正)
+        fab_my_location = findViewById(R.id.fab_my_location);
+        fab_add_note = findViewById(R.id.fab_add_note);
+        fab_user_profile = findViewById(R.id.fab_user_profile);
+
+        // [修改] 为新 FAB 按钮设置点击监听
+        fab_my_location.setOnClickListener(this);
+        fab_add_note.setOnClickListener(this);
+        fab_user_profile.setOnClickListener(this);
+
+        // [修改] 搜索框的监听逻辑 (这个在上一轮添加过，保持)
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
 
             // 当用户按下“搜索”或回车键时
@@ -565,108 +509,42 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
     @Override
     public void onClick(View view) {
-        if (view.getId() == R.id.fab_marker_car) { // 车辆标记添加按钮
-            // 添加车辆标记
-            showMsg("添加车辆标记");
-            // 弹出弹窗确认是否在当前位置添加车辆标记
-            new AlertDialog.Builder(this)
-                    .setTitle("添加车辆标记")
-                    .setMessage("是否在当前位置添加车辆标记？")
-                    .setPositiveButton("确定", (dialog, which) -> {
-                        if (carLatLng != null) {
-                            new AlertDialog.Builder(this)
-                                    .setTitle("添加车辆标记")
-                                    .setMessage("车辆标记已存在，是否替换为当前位置？")
-                                    .setPositiveButton("确定", (dialog1, which1) -> {
-                                        // 删除车辆标记
-                                        delMarker();
-                                        // 添加车辆标记
-                                        addMarker();
-                                        // 拍摄/导入车辆位置图片
-                                        new AlertDialog.Builder(this)
-                                                .setTitle("车辆位置图片")
-                                                .setMessage("是否拍摄/导入车辆位置图片？")
-                                                .setPositiveButton("拍摄/导入", (dialog2, which2) -> {
-                                                    showImagePickerDialog();
-                                                })
-                                                .setNeutralButton("取消", null)
-                                                .show();
-                                    })
-                                    .setNegativeButton("取消", null)
-                                    .show();
-                        } else {
-                            // 添加车辆标记的逻辑
-                            addMarker();
-                            // 拍摄/导入车辆位置图片
-                            new AlertDialog.Builder(this)
-                                    .setTitle("车辆位置图片")
-                                    .setMessage("是否拍摄/导入车辆位置图片？")
-                                    .setPositiveButton("拍摄/导入", (dialog1, which1) -> {
-                                        showImagePickerDialog();
-                                    })
-                                    .setNeutralButton("取消", null)
-                                    .show();
-                        }
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
-        } else if (view.getId() == R.id.fab_car_del) { // 车辆标记删除按钮
-            // 删除车辆标记
-            showMsg("删除车辆标记");
-            // 弹出弹窗确认是否在当前位置添加车辆标记
-            new AlertDialog.Builder(this)
-                    .setTitle("删除车辆标记")
-                    .setMessage("是否删除车辆标记？")
-                    .setPositiveButton("确定", (dialog, which) -> {
-                        // 删除车辆标记的逻辑
-                        delMarker();
-                        showMsg("车辆标记已删除");
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
-        } else if (view.getId() == R.id.fab_car_location) { // 车辆定位按钮
-            // 车辆定位
-            showMsg("车辆定位");
-            if (carLatLng != null) {
-                aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(carLatLng, 18));
-                showMsg("车辆定位成功");
-            } else {
-                showMsg("车辆位置未标记");
-            }
-        } else if (view.getId() == R.id.fab_navigation) { // 导航按钮
-            new AlertDialog.Builder(this)
-                    .setTitle("导航")
-                    .setMessage("是否导航到车辆位置？")
-                    .setPositiveButton("确定", (dialog, which) -> {
-//                        Uri uri = Uri.parse("amapuri://route/plan/?dlat="+"目的地lat"+"&dlon="+"目的地lng"+"&dname="+"目的地名称"+"&dev=0&t=0");
-//                        Activity.startActivity(new Intent(Intent.ACTION_VIEW, uri));
-                        Uri uri = Uri.parse("amapuri://route/plan/?dlat=" + carLatLng.latitude + "&dlon=" + carLatLng.longitude + "&dname=" + "我的车" + "&dev=0&t=0");
-                        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                        // 跳转至高德地图
-                        startActivity(intent);
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
-        } else if (view.getId() == R.id.fab_picture) { // 车辆图片按钮
-            Log.d(TAG, "按下了picture按钮");
-            // 检查目录下是否存在car.png文件
-            File file = new File(getFilesDir(), "car.png");
-            if (file.exists()) {
-                Log.d(TAG, "car.png文件存在");
-                // 如果存在则显示图片
-                Intent intent = new Intent(this, PictureActivity.class);
-                startActivity(intent);
-            } else {
-                Log.d(TAG, "car.png文件不存在");
-                // 如果不存在则提示用户拍摄或导入车辆位置图片
-                showMsg("还没有车辆位置图片，请长按按钮以导入车辆位置图片");
-            }
-        } else if (view.getId() == R.id.fab_zoom_large) {
+        // [修改] 删除了所有旧 FAB 的 if/else if 逻辑
+        // 只保留右上角的 FAB 逻辑
+        if (view.getId() == R.id.fab_zoom_large) {
             aMap.animateCamera(CameraUpdateFactory.zoomIn());
         } else if (view.getId() == R.id.fab_zoom_small) {
             aMap.animateCamera(CameraUpdateFactory.zoomOut());
         } else if (view.getId() == R.id.fab_location) {
             aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18));
+        }
+
+        // [修改] 新的底部 FAB 按钮的点击逻辑 (ID 已修正)
+        else if (view.getId() == R.id.fab_my_location) {
+            // “我的位置”按钮
+            // 复用你 fab_location 的逻辑
+            if (latLng != null) {
+                aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18));
+            } else {
+                showMsg("正在定位...");
+            }
+        }
+
+        else if (view.getId() == R.id.fab_add_note) {
+            // “添加笔记”按钮
+            // 这里是后端同学未来需要实现 P1 功能
+            // 我们先用一个占位符提示
+            showMsg("点击了 [添加笔记]");
+            // 备注：你旧的 "addMarker()" 逻辑和 "showImagePickerDialog()" 逻辑
+            // 最终会在这里被调用，但会改成 Firebase 版本
+        }
+
+        else if (view.getId() == R.id.fab_user_profile) {
+            // “用户资料”按钮
+            // 这里是后端同学未来需要实现 U1 功能
+            // 我们先用一个占位符提示
+            Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
+            startActivity(intent);
         }
     }
 
@@ -795,7 +673,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             File photoFile = new File(getFilesDir(), "car.png");
-            Uri photoURI = FileProvider.getUriForFile(this, "com.noworld.findmycar.fileprovider", photoFile);
+            // [关键修改] 确保 provider 授权和你的包名一致
+            Uri photoURI = FileProvider.getUriForFile(this, "com.noworld.notemap.fileprovider", photoFile);
             takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
             captureImageLauncher.launch(takePictureIntent);
         } else {
@@ -831,6 +710,10 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         builder.show();
     }
 
+    /**
+     * [新增] 执行 POI 搜索
+     * @param keyword 搜索关键词
+     */
     private void doSearchQuery(String keyword) {
         Log.d(TAG, "doSearchQuery: " + keyword);
         // 第一个参数表示搜索字符串，
@@ -841,7 +724,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         query.setPageNum(0); // 设置查询第一页
 
         try {
-            // 注意：你的 import 中有 PoiSearchV2 [line 42]，但我们用的是 PoiSearch
+            // 注意：你的 import 中有 PoiSearchV2，但我们用的是 PoiSearch
             // 确保你的 poiSearch 变量 (line 109) 被正确初始化
             poiSearch = new PoiSearch(this, query);
             poiSearch.setOnPoiSearchListener(this); // 设置回调
@@ -914,3 +797,4 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         // 这个方法是获取单个POI的详细信息时回调的，我们这里暂时用不到
     }
 }
+

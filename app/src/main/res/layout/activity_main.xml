@@ -7,15 +7,7 @@
     tools:context=".ui.MainActivity"
     android:orientation="vertical">
 
-    <com.amap.api.maps.MapView
-        android:id="@+id/mp_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/search_view" /> <!-- [修改] 让地图在搜索框的 "下方" 开始 -->
-
+    <!-- 搜索框 (保持不变) -->
     <androidx.appcompat.widget.SearchView
         android:id="@+id/search_view"
         android:layout_width="0dp"
@@ -26,78 +18,26 @@
         app:iconifiedByDefault="false"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" /> <!-- [保持] 搜索框在最顶部 -->
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_marker_car"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:src="@drawable/ic_car"
-        app:hoveredFocusedTranslationZ="18dp"
+    <!-- 地图 (保持不变) -->
+    <!-- 让地图重新铺满底部 -->
+
+    <!-- [删除] 底部的 LinearLayout (白条) 已被彻底删除 -->
+
+
+    <!-- 右上角的地图控件 (保持不变) -->
+    <com.amap.api.maps.MapView
+        android:id="@+id/mp_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:pressedTranslationZ="18dp" />
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_car_del"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/fab_marker_car"
-        android:layout_marginBottom="10dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:src="@drawable/ico_del"
-        app:hoveredFocusedTranslationZ="18dp"
-        app:layout_constraintBottom_toTopOf="@+id/fab_marker_car"
-        app:layout_constraintEnd_toEndOf="@+id/fab_marker_car"
-        app:pressedTranslationZ="18dp" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_car_location"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        android:layout_marginEnd="10dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:src="@drawable/ico_car_location"
-        app:hoveredFocusedTranslationZ="18dp"
-        app:layout_constraintEnd_toStartOf="@+id/fab_marker_car"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:pressedTranslationZ="18dp" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_picture"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        android:layout_marginEnd="10dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:src="@drawable/ic_picture"
-        app:hoveredFocusedTranslationZ="18dp"
-        app:layout_constraintEnd_toStartOf="@id/fab_car_location"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:pressedTranslationZ="18dp" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_navigation"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        android:layout_marginEnd="10dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:src="@drawable/ic_navigation"
-        app:hoveredFocusedTranslationZ="18dp"
-        app:layout_constraintEnd_toStartOf="@id/fab_picture"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:pressedTranslationZ="18dp" />
-
-    <!-- [保持] 你的修改是正确的 -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_zoom_large"
         android:layout_width="wrap_content"
@@ -138,4 +78,50 @@
         app:layout_constraintTop_toBottomOf="@id/fab_zoom_small"
         app:layout_constraintEnd_toEndOf="parent"
         app:pressedTranslationZ="18dp" />
+
+
+    <!-- 底部浮动按钮 -->
+
+    <!-- "添加笔记" 按钮 (中间) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_add_note"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:src="@drawable/ic_add"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:contentDescription="添加笔记" />
+
+    <!-- "我的位置" 按钮 (左侧) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_my_location"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="70dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:src="@drawable/ic_location"
+    app:layout_constraintBottom_toBottomOf="@id/fab_add_note"
+    app:layout_constraintEnd_toStartOf="@id/fab_add_note"
+    android:contentDescription="我的位置" />
+
+    <!-- "用户资料" 按钮 (右侧) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_user_profile"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="70dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:src="@drawable/ic_car"
+    app:layout_constraintBottom_toBottomOf="@id/fab_add_note"
+    app:layout_constraintStart_toEndOf="@id/fab_add_note"
+    android:contentDescription="用户资料" />
+    <!-- 注意：这里我暂时复用了 @drawable/ic_car，你以后应该换成“用户”图标 -->
+
 </androidx.constraintlayout.widget.ConstraintLayout>
+
