@@ -1,4 +1,4 @@
-package com.noworld.findmycar.ui;
+package com.noworld.notemap.ui;
 
 import android.net.Uri;
 import android.os.Bundle;
@@ -7,7 +7,7 @@ import android.widget.ImageView;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.noworld.findmycar.R;
+import com.noworld.notemap.R;
 
 import java.io.File;
 

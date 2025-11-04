@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.noworld.findmycar'
+    namespace 'com.noworld.notemap' // [修改] 从 com.noworld.findmycar 改成 com.noworld.notemap
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.noworld.findmycar"
+        applicationId "com.noworld.notemap" // [修改] 从 com.noworld.findmycar 改成 com.noworld.notemap
         minSdk 24
         targetSdk 34
         versionCode 1
@@ -39,12 +39,14 @@ android {
 
         debug {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // [注意] 这个 KEY 是旧的，你之后需要用新包名去高德申请新KEY来替换它
             resValue "string", "AMAP_API_KEY", "ac31eaa54e356c685f55e34bc7bb56be"//资源文件中，xml文件中引用的定义形式
         }
 
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // [注意] 这个 KEY 是旧的，你之后需要用新包名去高德申请新KEY来替换它
             resValue "string", "AMAP_API_KEY", "ac31eaa54e356c685f55e34bc7bb56be"
         }
     }

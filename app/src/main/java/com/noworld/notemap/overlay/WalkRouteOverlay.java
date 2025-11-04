@@ -1,4 +1,4 @@
-package com.noworld.findmycar.overlay;
+package com.noworld.notemap.overlay;
 
 import android.content.Context;
 

@@ -10,14 +10,24 @@
     <com.amap.api.maps.MapView
         android:id="@+id/mp_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/search_view" /> <!-- [修改] 让地图在搜索框的 "下方" 开始 -->
 
-    <!--浮动按钮-->
-    <!--右下角 开始-->
+    <androidx.appcompat.widget.SearchView
+        android:id="@+id/search_view"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:elevation="4dp"
+        android:queryHint="搜索地点..."
+        app:iconifiedByDefault="false"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" /> <!-- [保持] 搜索框在最顶部 -->
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_marker_car"
         android:layout_width="wrap_content"
@@ -86,9 +96,8 @@
         app:layout_constraintEnd_toStartOf="@id/fab_picture"
         app:layout_constraintBottom_toBottomOf="parent"
         app:pressedTranslationZ="18dp" />
-    <!--右下角 结束-->
 
-    <!--右上角 开始-->
+    <!-- [保持] 你的修改是正确的 -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_zoom_large"
         android:layout_width="wrap_content"
@@ -98,7 +107,7 @@
         android:focusable="true"
         android:src="@drawable/ic_add"
         app:hoveredFocusedTranslationZ="18dp"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/search_view"
         app:layout_constraintEnd_toEndOf="parent"
         app:pressedTranslationZ="18dp" />
 
@@ -129,6 +138,4 @@
         app:layout_constraintTop_toBottomOf="@id/fab_zoom_small"
         app:layout_constraintEnd_toEndOf="parent"
         app:pressedTranslationZ="18dp" />
-    <!--右上角 结束-->
-
 </androidx.constraintlayout.widget.ConstraintLayout>

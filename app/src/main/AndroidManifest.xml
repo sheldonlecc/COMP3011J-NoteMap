@@ -54,7 +54,7 @@
             android:value="@string/AMAP_API_KEY" />
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.noworld.findmycar.fileprovider"
+            android:authorities="com.noworld.notemap.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

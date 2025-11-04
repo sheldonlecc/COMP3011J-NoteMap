@@ -1,4 +1,4 @@
-package com.noworld.findmycar.ui;
+package com.noworld.notemap.ui;
 
 import android.Manifest;
 import android.content.Intent;
@@ -37,8 +37,16 @@ import com.amap.api.maps.model.LatLng;
 import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.MyLocationStyle;
+
+import com.amap.api.services.core.PoiItem;
+import com.amap.api.services.poisearch.PoiResult;
+import com.amap.api.services.poisearch.PoiSearch;
+import androidx.appcompat.widget.SearchView; // 注意导入的是 androidx.appcompat
+
+import com.noworld.notemap.utils.MapUtil; // 我们会用到你已有的工具类
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.noworld.findmycar.R;
+import com.noworld.notemap.R;
 
 import org.json.JSONObject;
 
@@ -47,7 +55,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-public class MainActivity extends AppCompatActivity implements AMapLocationListener, LocationSource, View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements AMapLocationListener, LocationSource, View.OnClickListener, PoiSearch.OnPoiSearchListener {
 
     private static final String TAG = "MainActivity";
 
@@ -89,6 +97,12 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private FloatingActionButton fab_location;
     private FloatingActionButton fab_navigation;
     private FloatingActionButton fab_picture;
+
+    // [新增] 搜索功能相关的变量
+    private SearchView searchView;
+    private PoiSearch.Query query;
+    private PoiSearch poiSearch;
+    private java.util.List<Marker> poiMarkers = new java.util.ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -404,6 +418,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         fab_location.setOnClickListener(this);
         fab_navigation.setOnClickListener(this);
         fab_picture.setOnClickListener(this);
+        searchView = findViewById(R.id.search_view);
         fab_picture.setOnLongClickListener(view -> {
             // 在这里处理长按事件
             Log.d(TAG, "长按了picture按钮");
@@ -417,6 +432,29 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                     .setNeutralButton("取消", null)
                     .show();
             return true;
+        });
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+
+            // 当用户按下“搜索”或回车键时
+            @Override
+            public boolean onQueryTextSubmit(String keyword) {
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    // 我们马上去创建这个 doSearchQuery 方法
+                    doSearchQuery(keyword);
+                    searchView.clearFocus(); // 隐藏键盘
+                } else {
+                    showMsg("请输入搜索关键词");
+                }
+                return true; // 表示事件已被处理
+            }
+
+            // 当搜索框内容变化时
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                // 我们暂时不需要处理这个
+                return false;
+            }
         });
     }
 
@@ -791,5 +829,88 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             }
         });
         builder.show();
+    }
+
+    private void doSearchQuery(String keyword) {
+        Log.d(TAG, "doSearchQuery: " + keyword);
+        // 第一个参数表示搜索字符串，
+        // 第二个参数表示poi搜索类型，传""代表所有类型，
+        // 第三个参数表示poi搜索区域，传""代表全国
+        query = new PoiSearch.Query(keyword, "", "");
+        query.setPageSize(10); // 设置每页最多返回多少条poi
+        query.setPageNum(0); // 设置查询第一页
+
+        try {
+            // 注意：你的 import 中有 PoiSearchV2 [line 42]，但我们用的是 PoiSearch
+            // 确保你的 poiSearch 变量 (line 109) 被正确初始化
+            poiSearch = new PoiSearch(this, query);
+            poiSearch.setOnPoiSearchListener(this); // 设置回调
+            poiSearch.searchPOIAsyn(); // 异步搜索
+        } catch (Exception e) {
+            e.printStackTrace();
+            showMsg("搜索失败");
+        }
+    }
+
+    /**
+     * [新增] POI 搜索成功的回调
+     * (这个方法是用来满足 PoiSearch.OnPoiSearchListener 接口的 [line 65])
+     */
+    @Override
+    public void onPoiSearched(PoiResult result, int rCode) {
+        Log.d(TAG, "onPoiSearched, rCode: " + rCode);
+        if (rCode == 1000) { // 1000 代表成功
+            if (result != null && result.getQuery() != null) {
+                if (result.getQuery().equals(query)) { // 确认是本次搜索的结果
+
+                    // [清除] 清除上一次的搜索标记
+                    for (Marker marker : poiMarkers) {
+                        marker.remove();
+                    }
+                    poiMarkers.clear();
+
+                    java.util.ArrayList<PoiItem> pois = result.getPois();
+                    if (pois == null || pois.isEmpty()) {
+                        showMsg("没有搜索到相关地点");
+                        return;
+                    }
+
+                    // [添加] 遍历搜索结果，添加到地图上
+                    for (int i = 0; i < pois.size(); i++) {
+                        PoiItem poiItem = pois.get(i);
+
+                        // 使用你已有的 MapUtil 工具类
+                        LatLng latLng = MapUtil.convertToLatLng(poiItem.getLatLonPoint());
+
+                        Marker marker = aMap.addMarker(new MarkerOptions()
+                                .position(latLng)
+                                .title(poiItem.getTitle())
+                                .snippet(poiItem.getSnippet()));
+
+                        poiMarkers.add(marker); // 保存起来，方便下次清除
+                    }
+
+                    // [移动] 将地图视野移动到第一个搜索结果
+                    if (!pois.isEmpty()) {
+                        PoiItem firstPoi = pois.get(0);
+                        aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                                MapUtil.convertToLatLng(firstPoi.getLatLonPoint()), 15));
+                    }
+                }
+            } else {
+                showMsg("没有搜索到相关地点");
+            }
+        } else {
+            showMsg("搜索失败，错误码: " + rCode);
+        }
+    }
+
+    /**
+     * [新增] POI 搜索单个点详情的回调
+     * (这个方法也是用来满足 PoiSearch.OnPoiSearchListener 接口的 [line 65])
+     */
+    @Override
+    public void onPoiItemSearched(PoiItem poiItem, int i) {
+        // 这个方法是获取单个POI的详细信息时回调的，我们这里暂时用不到
     }
 }

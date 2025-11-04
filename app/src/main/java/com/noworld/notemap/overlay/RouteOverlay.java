@@ -1,4 +1,4 @@
-package com.noworld.findmycar.overlay;
+package com.noworld.notemap.overlay;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -14,7 +14,7 @@ import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.Polyline;
 import com.amap.api.maps.model.PolylineOptions;
-import com.noworld.findmycar.R;
+import com.noworld.notemap.R;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.noworld.findmycar.service;
+package com.noworld.notemap.service;
 
 import android.app.Application;
 import android.content.Context;
