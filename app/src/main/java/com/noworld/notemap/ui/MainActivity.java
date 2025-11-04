@@ -532,11 +532,13 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
         else if (view.getId() == R.id.fab_add_note) {
             // “添加笔记”按钮
-            // 这里是后端同学未来需要实现 P1 功能
-            // 我们先用一个占位符提示
-            showMsg("点击了 [添加笔记]");
-            // 备注：你旧的 "addMarker()" 逻辑和 "showImagePickerDialog()" 逻辑
-            // 最终会在这里被调用，但会改成 Firebase 版本
+            // [修改] 启动 AddNoteActivity，并传入当前位置
+            Intent intent = new Intent(MainActivity.this, AddNoteActivity.class);
+            if (latLng != null) {
+                intent.putExtra("CURRENT_LAT", latLng.latitude);
+                intent.putExtra("CURRENT_LNG", latLng.longitude);
+            }
+            startActivity(intent);
         }
 
         else if (view.getId() == R.id.fab_user_profile) {
