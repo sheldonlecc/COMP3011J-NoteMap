@@ -78,6 +78,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private ActivityResultLauncher<Intent> captureImageLauncher;
     private ActivityResultLauncher<Intent> pickImageLauncher;
 
+    private UiSettings mUiSettings;
+
     private MapView mp_view;
     private FloatingActionButton fab_marker_car;
     private FloatingActionButton fab_car_del;
@@ -194,8 +196,13 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
      * 初始化地图
      */
     private void initMap() {
+        Log.d(TAG, "initMap");
         if (aMap == null) {
             aMap = mp_view.getMap();
+            // [修改 1] 明确启用旋转手势
+            mUiSettings = aMap.getUiSettings();
+            mUiSettings.setZoomControlsEnabled(false);
+            mUiSettings.setRotateGesturesEnabled(true); // [新增] 允许用户手动旋转地图
             // 创建定位蓝点的样式
             MyLocationStyle myLocationStyle = new MyLocationStyle();
             // 自定义定位蓝点图标
@@ -228,7 +235,15 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             // 连续定位、蓝点不会移动到地图中心点，并且蓝点会跟随设备移动。
             // myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_FOLLOW_NO_CENTER);
             // 连续定位、蓝点不会移动到地图中心点，地图依照设备方向旋转，并且蓝点会跟随设备移动。
-            myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_MAP_ROTATE_NO_CENTER);
+            // [修改]
+            // 我们上次把它改成了 LOCATION_TYPE_LOCATE (纯定位)
+            // 现在我们把它改回/改成 LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER
+            // 这个模式的含义是：图钉(LOCATION)旋转，但地图(MAP)不旋转，也不自动居中(NO_CENTER)
+            //
+            // 这正是你最初代码 里的设置，
+            // 它现在应该可以正常工作了，因为我们用 setRotateGesturesEnabled(true)
+            // 明确“解锁”了地图的手动旋转。
+            myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER);
 
             // 设置定位蓝点的样式
             aMap.setMyLocationStyle(myLocationStyle);
