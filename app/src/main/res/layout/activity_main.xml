@@ -7,7 +7,15 @@
     tools:context=".ui.MainActivity"
     android:orientation="vertical">
 
-    <!-- 搜索框 (保持不变) -->
+    <com.amap.api.maps.MapView
+        android:id="@+id/mp_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <androidx.appcompat.widget.SearchView
         android:id="@+id/search_view"
         android:layout_width="0dp"
@@ -20,23 +28,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 地图 (保持不变) -->
-    <!-- 让地图重新铺满底部 -->
-
-    <!-- [删除] 底部的 LinearLayout (白条) 已被彻底删除 -->
-
-
-    <!-- 右上角的地图控件 (保持不变) -->
-    <com.amap.api.maps.MapView
-        android:id="@+id/mp_view"
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar_main"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
+        android:layout_height="?attr/actionBarSize"
+        android:elevation="4dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
+        app:titleTextColor="@color/white"
+        android:background="@android:color/transparent"
+
+        app:title="" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_zoom_large"
@@ -89,9 +90,6 @@
         app:tint="@android:color/black" />
 
 
-    <!-- 底部浮动按钮 -->
-
-    <!-- "添加笔记" 按钮 (中间) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_note"
         android:layout_width="wrap_content"
@@ -137,7 +135,5 @@
 
         app:backgroundTint="#C21E56"
         app:tint="@android:color/white" />
-    <!-- 注意：这里我暂时复用了 @drawable/ic_car，你以后应该换成“用户”图标 -->
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-

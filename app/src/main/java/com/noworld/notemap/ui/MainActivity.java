@@ -110,12 +110,20 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private FloatingActionButton fab_add_note;
     private FloatingActionButton fab_user_profile;
 
+    private androidx.appcompat.widget.Toolbar toolbar_main; // 添加这个变量
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         initView();
+
+        setSupportActionBar(toolbar_main);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle("");
+        }
 
         requestPermission = registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
             // 权限申请结果
@@ -193,7 +201,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             //获取最近3s内精度最高的一次定位结果
             mLocationOption.setOnceLocationLatest(true);
             //设置是否返回地址信息（默认返回地址信息）
-            mLocationOption.setNeedAddress(true);
+                mLocationOption.setNeedAddress(true);
             //设置定位超时时间，单位是毫秒
             mLocationOption.setHttpTimeOut(6000);
             //给定位客户端对象设置定位参数
@@ -356,6 +364,9 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         fab_zoom_large = findViewById(R.id.fab_zoom_large);
         fab_zoom_small = findViewById(R.id.fab_zoom_small);
         fab_location = findViewById(R.id.fab_location);
+
+        // [新增] 绑定 Toolbar
+        toolbar_main = findViewById(R.id.toolbar_main);
 
         // [修改] 只为保留的 FAB 设置监听
         fab_zoom_large.setOnClickListener(this);
