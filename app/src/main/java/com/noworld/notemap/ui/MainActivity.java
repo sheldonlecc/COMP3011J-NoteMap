@@ -1,19 +1,25 @@
 package com.noworld.notemap.ui;
 
 import android.Manifest;
+import android.content.Context; // [新增] 导入 Context
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas; // [新增] 导入 Canvas
 import android.graphics.Color;
+import android.graphics.Paint; // [新增] 导入 Paint
+import android.graphics.RectF; // [新增] 导入 RectF
+import android.graphics.drawable.BitmapDrawable; // [新增] 导入 BitmapDrawable
+import android.graphics.drawable.Drawable; // [新增] 导入 Drawable
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler; // [新增] 导入 Handler
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-// [删除] android.widget.ImageButton; // 我们不再使用 ImageButton
 import android.widget.Toast;
 
 
@@ -22,6 +28,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView; // [新增] 导入 SearchView
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
@@ -36,6 +43,7 @@ import com.amap.api.maps.LocationSource;
 import com.amap.api.maps.MapView;
 import com.amap.api.maps.UiSettings;
 import com.amap.api.maps.model.LatLng;
+import com.amap.api.maps.model.LatLngBounds;
 import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.MyLocationStyle;
@@ -55,12 +63,26 @@ import org.json.JSONObject;
 
 // [删除] import android.widget.ImageButton; // 已删除
 
+
+// [新增] 导入点聚合类，使用您提供的 demo 源代码的包名
+import com.amap.apis.cluster.ClusterClickListener;
+import com.amap.apis.cluster.ClusterItem;
+import com.amap.apis.cluster.ClusterOverlay;
+import com.amap.apis.cluster.ClusterRender;
+// [新增] 导入 RegionItem 所在的 demo 包，假设它在 demo 目录下
+import com.amap.apis.cluster.demo.RegionItem;
+
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class MainActivity extends AppCompatActivity implements AMapLocationListener, LocationSource, View.OnClickListener, PoiSearch.OnPoiSearchListener {
+public class MainActivity extends AppCompatActivity implements AMapLocationListener, LocationSource, View.OnClickListener, PoiSearch.OnPoiSearchListener, ClusterRender, ClusterClickListener {
 
     private static final String TAG = "MainActivity";
 
@@ -111,6 +133,12 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private FloatingActionButton fab_user_profile;
 
     private androidx.appcompat.widget.Toolbar toolbar_main; // 添加这个变量
+
+    private ClusterOverlay mClusterOverlay;
+    private int clusterRadius = 100; // 聚合半径 (dp)
+    private Map<Integer, Drawable> mBackDrawAbles = new HashMap<>(); // 缓存不同数量的聚合图标
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -247,6 +275,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
             // 开启室内地图
             aMap.showIndoorMap(true);
+
+            aMap.setOnMapLoadedListener(this::initClusterData);
             // 地图控件设置
             UiSettings uiSettings = aMap.getUiSettings();
             // 隐藏缩放按钮
@@ -439,6 +469,148 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             e.printStackTrace();
             showMsg("获取车辆位置失败: " + e.getMessage());
         }
+    }
+
+    public void initClusterData() {
+        // [删除] 原始 demo 中的 mAMap = mMapView.getMap(); 因为我们在 initMap() 中已经初始化
+
+        // [新增] 移除地图点击事件（避免与 onMapClick 动态添加点冲突，如果您需要测试官方 demo 的动态添加，可以保留）
+        // aMap.setOnMapClickListener(this);
+
+        // 使用一个新线程来生成和添加大量数据，避免阻塞主线程
+        new Thread(() -> {
+            List<ClusterItem> items = new ArrayList<>();
+            // 随机生成 10000 个点 (示例数据)
+            for (int i = 0; i < 10000; i++) {
+                double lat = Math.random() + 39.474923;
+                double lon = Math.random() + 116.027116;
+
+                LatLng latLng = new LatLng(lat, lon, false);
+                // [注意] 这里的 RegionItem 必须是 com.amap.apis.cluster.demo.RegionItem
+                // 且该类必须实现 com.amap.apis.cluster.ClusterItem 接口
+                RegionItem regionItem = new RegionItem(latLng, "test" + i);
+                items.add(regionItem);
+            }
+
+            // 在主线程或 HandlerThread 中初始化 ClusterOverlay
+            // ClusterOverlay 的初始化内部会处理线程安全
+            mClusterOverlay = new ClusterOverlay(aMap, items,
+                    dp2px(getApplicationContext(), clusterRadius),
+                    getApplicationContext());
+
+            // 设置渲染器和点击监听器
+            mClusterOverlay.setClusterRenderer(MainActivity.this);
+            mClusterOverlay.setOnClusterClickListener(MainActivity.this);
+
+        }).start();
+    }
+
+
+    /**
+     * [新增] 实现 ClusterRender 接口: 获取聚合点的图标样式
+     * (直接从官方 Demo 中移植)
+     */
+    @Override
+    public Drawable getDrawAble(int clusterNum) {
+        // 聚合图标渲染逻辑 (使用 drawCircle, dp2px 等方法)
+        int radius = dp2px(getApplicationContext(), 80);
+
+        // 单个 Marker 的样式 (聚类数为 1)
+        if (clusterNum == 1) {
+            Drawable bitmapDrawable = mBackDrawAbles.get(1);
+            if (bitmapDrawable == null) {
+                // [注意] 这里的 R.drawable.icon_openmap_mark 需要您项目中有对应的图片资源
+                // 这里暂时用一个默认颜色替代，避免编译错误
+                bitmapDrawable = new BitmapDrawable(null, drawCircle(radius/3, Color.GRAY));
+                mBackDrawAbles.put(1, bitmapDrawable);
+            }
+            return bitmapDrawable;
+        }
+
+        // 聚合点样式
+        else if (clusterNum < 5) {
+            Drawable bitmapDrawable = mBackDrawAbles.get(2);
+            if (bitmapDrawable == null) {
+                bitmapDrawable = new BitmapDrawable(null, drawCircle(radius,
+                        Color.argb(159, 210, 154, 6))); // 黄色系
+                mBackDrawAbles.put(2, bitmapDrawable);
+            }
+            return bitmapDrawable;
+        } else if (clusterNum < 10) {
+            Drawable bitmapDrawable = mBackDrawAbles.get(3);
+            if (bitmapDrawable == null) {
+                bitmapDrawable = new BitmapDrawable(null, drawCircle(radius,
+                        Color.argb(199, 217, 114, 0))); // 橙色系
+                mBackDrawAbles.put(3, bitmapDrawable);
+            }
+            return bitmapDrawable;
+        } else {
+            Drawable bitmapDrawable = mBackDrawAbles.get(4);
+            if (bitmapDrawable == null) {
+                bitmapDrawable = new BitmapDrawable(null, drawCircle(radius,
+                        Color.argb(235, 215, 66, 2))); // 红色系
+                mBackDrawAbles.put(4, bitmapDrawable);
+            }
+            return bitmapDrawable;
+        }
+    }
+
+    // =========================================================================
+    // [点聚合核心逻辑 - 从官方 Demo 移植]
+    // =========================================================================
+
+    /**
+     * [新增] 在地图加载完成后，初始化并开始计算点聚合数据
+     * 注意: 这是在实现 AMap.OnMapLoadedListener 接口时被回调的
+     */
+
+
+
+    /**
+     * [新增] 实现 ClusterRender 接口: 获取聚合点的图标样式
+     * (直接从官方 Demo 中移植)
+     */
+
+
+    /**
+     * [新增] 实现 ClusterClickListener 接口: 点击聚合点的处理逻辑
+     * (直接从官方 Demo 中移植)
+     */
+    @Override
+    public void onClick(Marker marker, List<ClusterItem> clusterItems) {
+        // 点击聚合点后，将地图视野移动到所有聚合点标记的边界
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        for (ClusterItem clusterItem : clusterItems) {
+            builder.include(clusterItem.getPosition());
+        }
+        LatLngBounds latLngBounds = builder.build();
+        // 动画移动，边界留白 0 像素
+        aMap.animateCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds, 0));
+    }
+
+    /**
+     * [新增] Helper 方法: 绘制圆形 Bitmap 作为聚合点图标
+     * (直接从官方 Demo 中移植)
+     */
+    private Bitmap drawCircle(int radius, int color) {
+        Bitmap bitmap = Bitmap.createBitmap(radius * 2, radius * 2,
+                Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        Paint paint = new Paint();
+        RectF rectF = new RectF(0, 0, radius * 2, radius * 2);
+        paint.setColor(color);
+        canvas.drawArc(rectF, 0, 360, true, paint);
+        // 在中心绘制数量文本 (如果需要，这里可以简化，只绘制圆)
+        return bitmap;
+    }
+
+    /**
+     * [新增] Helper 方法: dp 转 px
+     * (直接从官方 Demo 中移植)
+     */
+    public int dp2px(Context context, float dpValue) {
+        final float scale = context.getResources().getDisplayMetrics().density;
+        return (int) (dpValue * scale + 0.5f);
     }
 
     /**
