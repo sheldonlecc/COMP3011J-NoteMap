@@ -50,12 +50,12 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.noworld.notemap.R;
 
 
-// [新增] 导入点聚合类，使用您提供的 demo 源代码的包名
+// 导入点聚合类
 import com.amap.apis.cluster.ClusterClickListener;
 import com.amap.apis.cluster.ClusterItem;
 import com.amap.apis.cluster.ClusterOverlay;
 import com.amap.apis.cluster.ClusterRender;
-// [新增] 导入 RegionItem 所在的 demo 包，假设它在 demo 目录下
+// 导入 RegionItem
 import com.amap.apis.cluster.demo.RegionItem;
 
 
@@ -64,6 +64,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// 导入 ClusterDetailActivity
+import com.noworld.notemap.ui.ClusterDetailActivity;
+
+// [重要] 确保类声明实现了所有接口
 public class MainActivity extends AppCompatActivity implements AMapLocationListener, LocationSource, View.OnClickListener, PoiSearch.OnPoiSearchListener, ClusterRender, ClusterClickListener {
 
     private static final String TAG = "MainActivity";
@@ -81,8 +85,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private LocationSource.OnLocationChangedListener mListener = null;
     // 声明当前坐标
     private LatLng latLng = null;
-    // 声明车辆坐标
-    private LatLng carLatLng = null;
+
     // 声明是否设置缩放级别
     private boolean isSetZoomLevel = false;
     private UiSettings mUiSettings;
@@ -106,6 +109,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
     private androidx.appcompat.widget.Toolbar toolbar_main; // 添加这个变量
 
+    // 点聚合相关
     private ClusterOverlay mClusterOverlay;
     private int clusterRadius = 100; // 聚合半径 (dp)
     private Map<Integer, Drawable> mBackDrawAbles = new HashMap<>(); // 缓存不同数量的聚合图标
@@ -138,9 +142,11 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         // 初始化地图
         initMap();
 
+        // [删除] 移除了 initMarker() 和 initImageLauncher() (车辆逻辑)
+
         Log.d(TAG, "moveCamera: " + latLng);
-        // 设置地图默认缩放级别
-        aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16));
+        // 设置地图默认缩放级别 (可以调整为更远的 10)
+        aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(39.904, 116.407), 10));
         Log.d(TAG, "moveEnd!");
 
     }
@@ -197,7 +203,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             //获取最近3s内精度最高的一次定位结果
             mLocationOption.setOnceLocationLatest(true);
             //设置是否返回地址信息（默认返回地址信息）
-                mLocationOption.setNeedAddress(true);
+            mLocationOption.setNeedAddress(true);
             //设置定位超时时间，单位是毫秒
             mLocationOption.setHttpTimeOut(6000);
             //给定位客户端对象设置定位参数
@@ -244,7 +250,9 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             // 开启室内地图
             aMap.showIndoorMap(true);
 
+            // [新增] 注册地图加载完成监听，用于初始化点聚合
             aMap.setOnMapLoadedListener(this::initClusterData);
+
             // 地图控件设置
             UiSettings uiSettings = aMap.getUiSettings();
             // 隐藏缩放按钮
@@ -275,15 +283,11 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     @Override
     protected void onResume() {
         super.onResume();
-
         mp_view.onResume();
-
         // 检查是否已经获取到定位权限
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            // 获取到权限
             startLocation();
         } else {
-            // 请求定位权限
             requestPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION);
         }
     }
@@ -291,27 +295,24 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     @Override
     protected void onPause() {
         super.onPause();
-
-        // 绑定生命周期 onPause
         mp_view.onPause();
     }
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        // 绑定生命周期 onSaveInstanceState
         mp_view.onSaveInstanceState(outState);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
-        // 绑定生命周期 onDestroy
+        // [新增] 销毁聚合图层
+        if (mClusterOverlay != null) {
+            mClusterOverlay.onDestroy();
+        }
         mp_view.onDestroy();
-        // 停止定位
         stopLocation();
-        // 销毁定位
         if (mLocationClient != null) {
             mLocationClient.onDestroy();
         }
@@ -333,19 +334,17 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         if (aMapLocation.getErrorCode() == 0) {
             // 定位成功
             Log.i(TAG, "定位成功");
-//            showMsg("定位成功");
             latLng = new LatLng(aMapLocation.getLatitude(), aMapLocation.getLongitude()); // 获取当前latlng坐标
 
-            // 停止定位
-//            stopLocation();
             // 显示地图定位结果
             if (mListener != null) {
                 mListener.onLocationChanged(aMapLocation);
             }
             if (!isSetZoomLevel && latLng != null) {
-                aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18));
-                Log.d(TAG, "moveEnd!");
-                isSetZoomLevel = true;
+                // aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18));
+                // Log.d(TAG, "moveEnd!");
+                // isSetZoomLevel = true;
+                // [修改] 不再自动缩放到18级，让点聚合的默认缩放生效
             }
         } else {
             // 定位失败
@@ -373,9 +372,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
         searchView = findViewById(R.id.search_view);
 
-        // [删除] 旧的 fab_picture 长按监听
-        // fab_picture.setOnLongClickListener(view -> { ... });
-
         // [修改] 绑定新的底部导航栏 FAB 按钮 (ID 已修正)
         fab_my_location = findViewById(R.id.fab_my_location);
         fab_add_note = findViewById(R.id.fab_add_note);
@@ -386,14 +382,13 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         fab_add_note.setOnClickListener(this);
         fab_user_profile.setOnClickListener(this);
 
-        // [修改] 搜索框的监听逻辑 (这个在上一轮添加过，保持)
+        // [修改] 搜索框的监听逻辑
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
 
             // 当用户按下“搜索”或回车键时
             @Override
             public boolean onQueryTextSubmit(String keyword) {
                 if (keyword != null && !keyword.trim().isEmpty()) {
-                    // 我们马上去创建这个 doSearchQuery 方法
                     doSearchQuery(keyword);
                     searchView.clearFocus(); // 隐藏键盘
                 } else {
@@ -405,18 +400,20 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             // 当搜索框内容变化时
             @Override
             public boolean onQueryTextChange(String newText) {
-                // 我们暂时不需要处理这个
                 return false;
             }
         });
     }
 
+    // =========================================================================
+    // [点聚合核心逻辑 - 唯一的方法定义]
+    // =========================================================================
+
+    /**
+     * [唯一] 在地图加载完成后，初始化并开始计算点聚合数据
+     */
     public void initClusterData() {
-        // [删除] 原始 demo 中的 mAMap = mMapView.getMap(); 因为我们在 initMap() 中已经初始化
-
-        // [新增] 移除地图点击事件（避免与 onMapClick 动态添加点冲突，如果您需要测试官方 demo 的动态添加，可以保留）
-        // aMap.setOnMapClickListener(this);
-
+        Log.d(TAG, "地图加载完成，开始初始化点聚合...");
         // 使用一个新线程来生成和添加大量数据，避免阻塞主线程
         new Thread(() -> {
             List<ClusterItem> items = new ArrayList<>();
@@ -426,14 +423,12 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                 double lon = Math.random() + 116.027116;
 
                 LatLng latLng = new LatLng(lat, lon, false);
-                // [注意] 这里的 RegionItem 必须是 com.amap.apis.cluster.demo.RegionItem
-                // 且该类必须实现 com.amap.apis.cluster.ClusterItem 接口
-                RegionItem regionItem = new RegionItem(latLng, "test" + i);
+                // 使用 RegionItem (确保它实现了 Serializable)
+                RegionItem regionItem = new RegionItem(latLng, "测试笔记 " + i);
                 items.add(regionItem);
             }
 
-            // 在主线程或 HandlerThread 中初始化 ClusterOverlay
-            // ClusterOverlay 的初始化内部会处理线程安全
+            // 初始化 ClusterOverlay
             mClusterOverlay = new ClusterOverlay(aMap, items,
                     dp2px(getApplicationContext(), clusterRadius),
                     getApplicationContext());
@@ -447,8 +442,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
 
     /**
-     * [新增] 实现 ClusterRender 接口: 获取聚合点的图标样式
-     * (直接从官方 Demo 中移植)
+     * [唯一] 实现 ClusterRender 接口: 获取聚合点的图标样式
      */
     @Override
     public Drawable getDrawAble(int clusterNum) {
@@ -495,42 +489,9 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         }
     }
 
-    // =========================================================================
-    // [点聚合核心逻辑 - 从官方 Demo 移植]
-    // =========================================================================
 
     /**
-     * [新增] 在地图加载完成后，初始化并开始计算点聚合数据
-     * 注意: 这是在实现 AMap.OnMapLoadedListener 接口时被回调的
-     */
-
-
-
-    /**
-     * [新增] 实现 ClusterRender 接口: 获取聚合点的图标样式
-     * (直接从官方 Demo 中移植)
-     */
-
-
-    /**
-     * [新增] 实现 ClusterClickListener 接口: 点击聚合点的处理逻辑
-     * (直接从官方 Demo 中移植)
-     */
-    @Override
-    public void onClick(Marker marker, List<ClusterItem> clusterItems) {
-        // 点击聚合点后，将地图视野移动到所有聚合点标记的边界
-        LatLngBounds.Builder builder = new LatLngBounds.Builder();
-        for (ClusterItem clusterItem : clusterItems) {
-            builder.include(clusterItem.getPosition());
-        }
-        LatLngBounds latLngBounds = builder.build();
-        // 动画移动，边界留白 0 像素
-        aMap.animateCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds, 0));
-    }
-
-    /**
-     * [新增] Helper 方法: 绘制圆形 Bitmap 作为聚合点图标
-     * (直接从官方 Demo 中移植)
+     * [唯一] Helper 方法: 绘制圆形 Bitmap 作为聚合点图标
      */
     private Bitmap drawCircle(int radius, int color) {
         Bitmap bitmap = Bitmap.createBitmap(radius * 2, radius * 2,
@@ -540,13 +501,11 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         RectF rectF = new RectF(0, 0, radius * 2, radius * 2);
         paint.setColor(color);
         canvas.drawArc(rectF, 0, 360, true, paint);
-        // 在中心绘制数量文本 (如果需要，这里可以简化，只绘制圆)
         return bitmap;
     }
 
     /**
-     * [新增] Helper 方法: dp 转 px
-     * (直接从官方 Demo 中移植)
+     * [唯一] Helper 方法: dp 转 px
      */
     public int dp2px(Context context, float dpValue) {
         final float scale = context.getResources().getDisplayMetrics().density;
@@ -578,22 +537,129 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         mLocationClient = null;
     }
 
+    // =========================================================================
+    // [两个 onClick 方法 - 唯一的方法定义]
+    // =========================================================================
+
+    /**
+     * [唯一] 方法一：处理地图聚合点 (Cluster) 的点击事件
+     * 实现 ClusterClickListener 接口
+     */
+    @Override
+    public void onClick(Marker marker, List<ClusterItem> clusterItems) {
+
+        // [调试点 1] 检查方法是否被调用
+        Log.d("ClusterDebug", "onClick(Marker, List) 方法被调用。");
+
+        if (clusterItems == null || clusterItems.isEmpty()) {
+            Log.e("ClusterDebug", "错误：clusterItems 为空！");
+            return;
+        }
+
+        // [调试点 2] 检查点击类型
+        Log.d("ClusterDebug", "点击的聚合点包含 " + clusterItems.size() + " 个元素。");
+
+        // 判断是否是聚合点 (数量大于 1)
+        if (clusterItems.size() > 1) {
+
+            // [调试点 3] 确认进入了 "聚合点" 逻辑
+            Log.d("ClusterDebug", "进入了 if (clusterItems.size() > 1) 逻辑块。");
+
+            // 1. 转换为可传递的 RegionItem 列表
+            ArrayList<RegionItem> notesList = new ArrayList<>();
+            for (ClusterItem item : clusterItems) {
+                if (item instanceof RegionItem) {
+                    notesList.add((RegionItem) item);
+                } else {
+                    // [调试点 4] 检查类型转换失败
+                    Log.e("ClusterDebug", "错误：聚合体中的某个元素不是 RegionItem！");
+                }
+            }
+
+            if (notesList.isEmpty()) {
+                Log.e("ClusterDebug", "错误：notesList 为空，转换失败。");
+                Toast.makeText(this, "聚合点数据异常，无法解析。", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // [调试点 5] 检查 RegionItem 是否实现了 Serializable 接口
+            try {
+                Object testItem = notesList.get(0);
+                if (!(testItem instanceof java.io.Serializable)) {
+                    // 【最可能的崩溃点 A】
+                    Log.e("ClusterDebug", "【致命错误】: RegionItem.java 必须实现 java.io.Serializable 接口！");
+                    Toast.makeText(this, "崩溃原因: RegionItem 未实现 Serializable 接口!", Toast.LENGTH_LONG).show();
+                    return; // 阻止应用崩溃
+                }
+                Log.d("ClusterDebug", "检查通过：RegionItem 实现了 Serializable 接口。");
+
+            } catch (Exception e) {
+                Log.e("ClusterDebug", "检查 Serializable 时发生异常: " + e.getMessage());
+                return;
+            }
+
+            // 2. 启动新的列表详情 Activity
+            Log.d("ClusterDebug", "准备创建 Intent，目标：ClusterDetailActivity.class");
+            Intent intent = new Intent(this, ClusterDetailActivity.class);
+
+            Log.d("ClusterDebug", "准备传递 " + notesList.size() + " 个笔记。");
+            intent.putExtra(ClusterDetailActivity.EXTRA_CLUSTER_NOTES, notesList);
+
+            try {
+                // [调试点 6] 尝试启动 Activity
+                Log.d("ClusterDebug", "【关键步骤】正在调用 startActivity(intent)...");
+                startActivity(intent);
+                Log.d("ClusterDebug", "startActivity() 调用成功！"); // 如果看到这条，说明 Activity 启动了
+
+            } catch (android.content.ActivityNotFoundException e) {
+                // 【最可能的崩溃点 B】
+                Log.e("ClusterDebug", "【致命错误】: ActivityNotFoundException！");
+                Log.e("ClusterDebug", "请立即检查 AndroidManifest.xml 是否已注册 .ui.ClusterDetailActivity");
+                Toast.makeText(this, "崩溃原因: Activity 未在 Manifest 中注册!", Toast.LENGTH_LONG).show();
+
+            } catch (Exception e) {
+                // 【其他崩溃点】
+                Log.e("ClusterDebug", "【致命错误】: startActivity 时发生未知异常 (可能是序列化失败): " + e.getMessage());
+                Toast.makeText(this, "崩溃: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+
+        } else if (clusterItems.size() == 1) {
+
+            // [调试点 7] 确认进入了 "单个笔记" 逻辑
+            Log.d("ClusterDebug", "进入了 else if (clusterItems.size() == 1) 逻辑块。");
+
+            ClusterItem item = clusterItems.get(0);
+            String title = "（未知标题）";
+
+            if (item instanceof RegionItem) {
+                title = ((RegionItem) item).getTitle();
+            }
+
+            Toast.makeText(this, "点击了单个笔记: " + title, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * [唯一] 方法二：处理 UI 控件 (FAB 按钮等) 的点击事件
+     * 实现 View.OnClickListener 接口
+     */
     @Override
     public void onClick(View view) {
-        // [修改] 删除了所有旧 FAB 的 if/else if 逻辑
-        // 只保留右上角的 FAB 逻辑
         if (view.getId() == R.id.fab_zoom_large) {
             aMap.animateCamera(CameraUpdateFactory.zoomIn());
         } else if (view.getId() == R.id.fab_zoom_small) {
             aMap.animateCamera(CameraUpdateFactory.zoomOut());
         } else if (view.getId() == R.id.fab_location) {
-            aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18));
+            if (latLng != null) {
+                aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18));
+            } else {
+                showMsg("正在定位...");
+            }
         }
 
         // [修改] 新的底部 FAB 按钮的点击逻辑 (ID 已修正)
         else if (view.getId() == R.id.fab_my_location) {
             // “我的位置”按钮
-            // 复用你 fab_location 的逻辑
             if (latLng != null) {
                 aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18));
             } else {
@@ -603,7 +669,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
         else if (view.getId() == R.id.fab_add_note) {
             // “添加笔记”按钮
-            // [修改] 启动 AddNoteActivity，并传入当前位置
             Intent intent = new Intent(MainActivity.this, AddNoteActivity.class);
             if (latLng != null) {
                 intent.putExtra("CURRENT_LAT", latLng.latitude);
@@ -614,8 +679,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
         else if (view.getId() == R.id.fab_user_profile) {
             // “用户资料”按钮
-            // 这里是后端同学未来需要实现 U1 功能
-            // 我们先用一个占位符提示
             Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
             startActivity(intent);
         }
@@ -637,8 +700,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         query.setPageNum(0); // 设置查询第一页
 
         try {
-            // 注意：你的 import 中有 PoiSearchV2，但我们用的是 PoiSearch
-            // 确保你的 poiSearch 变量 (line 109) 被正确初始化
             poiSearch = new PoiSearch(this, query);
             poiSearch.setOnPoiSearchListener(this); // 设置回调
             poiSearch.searchPOIAsyn(); // 异步搜索
@@ -650,7 +711,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
     /**
      * [新增] POI 搜索成功的回调
-     * (这个方法是用来满足 PoiSearch.OnPoiSearchListener 接口的 [line 65])
      */
     @Override
     public void onPoiSearched(PoiResult result, int rCode) {
@@ -703,11 +763,9 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
     /**
      * [新增] POI 搜索单个点详情的回调
-     * (这个方法也是用来满足 PoiSearch.OnPoiSearchListener 接口的 [line 65])
      */
     @Override
     public void onPoiItemSearched(PoiItem poiItem, int i) {
         // 这个方法是获取单个POI的详细信息时回调的，我们这里暂时用不到
     }
 }
-
