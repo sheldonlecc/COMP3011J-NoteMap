@@ -12,10 +12,7 @@ import android.graphics.Paint; // [新增] 导入 Paint
 import android.graphics.RectF; // [新增] 导入 RectF
 import android.graphics.drawable.BitmapDrawable; // [新增] 导入 BitmapDrawable
 import android.graphics.drawable.Drawable; // [新增] 导入 Drawable
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler; // [新增] 导入 Handler
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,12 +23,8 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView; // [新增] 导入 SearchView
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationClient;
@@ -51,17 +44,10 @@ import com.amap.api.maps.model.MyLocationStyle;
 import com.amap.api.services.core.PoiItem;
 import com.amap.api.services.poisearch.PoiResult;
 import com.amap.api.services.poisearch.PoiSearch;
-import androidx.appcompat.widget.SearchView;
-import com.amap.api.maps.model.MarkerOptions;
-import com.amap.api.services.poisearch.PoiSearchV2;
 import com.noworld.notemap.utils.MapUtil;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.noworld.notemap.R;
-
-import org.json.JSONObject;
-
-// [删除] import android.widget.ImageButton; // 已删除
 
 
 // [新增] 导入点聚合类，使用您提供的 demo 源代码的包名
@@ -73,10 +59,6 @@ import com.amap.apis.cluster.ClusterRender;
 import com.amap.apis.cluster.demo.RegionItem;
 
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -101,18 +83,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private LatLng latLng = null;
     // 声明车辆坐标
     private LatLng carLatLng = null;
-    private Marker carMarker = null;
     // 声明是否设置缩放级别
     private boolean isSetZoomLevel = false;
-
-    private android.app.AlertDialog alertDialog;
-
-    // 请求码
-    private final int REQUEST_CAMERA_PERMISSION = 101;
-
-    private ActivityResultLauncher<Intent> captureImageLauncher;
-    private ActivityResultLauncher<Intent> pickImageLauncher;
-
     private UiSettings mUiSettings;
 
     private MapView mp_view;
@@ -437,34 +409,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                 return false;
             }
         });
-    }
-
-    private void initMarker() {
-        try {
-            File file = new File(getFilesDir(), "car.json");
-            if (file.exists() && file.length() > 0) {
-                byte[] bytes = new byte[(int) file.length()];
-                FileInputStream fis = new FileInputStream(file);
-                fis.read(bytes);
-                fis.close();
-                JSONObject carLocation = new JSONObject(new String(bytes));
-                double latitude = carLocation.getDouble("latitude");
-                double longitude = carLocation.getDouble("longitude");
-                carLatLng = new LatLng(latitude, longitude);
-                MarkerOptions markerOptions = new MarkerOptions();
-                markerOptions.position(carLatLng);
-                markerOptions.title("车辆位置");
-                // 缩小ico_marker图标
-                Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ico_marker);
-                Bitmap smallBitmap = Bitmap.createScaledBitmap(bitmap, 100, 100, false);
-                markerOptions.icon(com.amap.api.maps.model.BitmapDescriptorFactory.fromBitmap(smallBitmap));
-                carMarker = aMap.addMarker(markerOptions);
-                Log.d(TAG, "initMarker: 车辆标记已初始化");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            showMsg("获取车辆位置失败: " + e.getMessage());
-        }
     }
 
     public void initClusterData() {
