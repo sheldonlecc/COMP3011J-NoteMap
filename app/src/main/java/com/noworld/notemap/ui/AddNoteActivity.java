@@ -30,6 +30,8 @@ import com.amap.api.services.geocoder.RegeocodeResult; // [新增] 导入 Regeoc
 import com.google.android.material.textfield.TextInputEditText;
 import com.noworld.notemap.R;
 
+import android.widget.Toast;
+
 // [修改] 实现 OnGeocodeSearchListener 接口
 public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.OnGeocodeSearchListener {
 

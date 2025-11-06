@@ -45,6 +45,12 @@
         </activity>
 
         <activity
+            android:name=".ui.NoteDetailActivity"
+            android:label="笔记详情"
+            android:exported="false"
+            android:parentActivityName=".ui.ClusterDetailActivity" />
+
+        <activity
             android:name=".ui.AddNoteActivity"
             android:label="创建笔记"
             android:exported="false"
@@ -82,5 +88,7 @@
                 android:resource="@xml/file_paths" />
         </provider>
     </application>
+
+
 
 </manifest>

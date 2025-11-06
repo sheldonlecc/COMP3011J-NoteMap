@@ -1,58 +1,80 @@
+// 位置: com/amap/apis/cluster/demo/RegionItem.java
+
 package com.amap.apis.cluster.demo;
 
 import com.amap.api.maps.model.LatLng;
 import com.amap.apis.cluster.ClusterItem;
-
 import java.io.Serializable;
 
 public class RegionItem implements ClusterItem, Serializable {
 
-    private static final long serialVersionUID = 20251107L; // 保持版本号
+    private static final long serialVersionUID = 20251109L; // 更新版本号
 
-    // 【1. 关键修改】将 LatLng 对象标记为 transient (瞬态)
-    // 这告诉序列化器“跳过”这个字段，不要尝试序列化它。
+    // 1. 地图数据 (序列化修复)
     private transient LatLng mLatLng;
-
-    // 【2. 新增】我们改为存储原始的经纬度，因为 double 是可序列化的
     private double mLatitude;
     private double mLongitude;
 
-    private String mTitle;
+    // 2. 笔记数据
+    private String noteId;
+    private String title;
     private String photoUrl;
+    private String authorName;
+    private String authorAvatarUrl;
+    private int likeCount;
 
-    // 【3. 修改】构造函数，同时保存 LatLng 和 原始 double
-    public RegionItem(LatLng latLng, String title, String photoUrl) {
-        this.mLatLng = latLng; // 运行时使用
-        this.mTitle = title;
-        this.photoUrl = photoUrl;
+    // 3. 【新增】详情页所需数据
+    private String description;     // 笔记正文/描述
+    private String noteType;        // 笔记类型 (e.g., "美食", "风景")
+    private String locationName;    // 拍摄地点 (e.g., "北京市朝阳区...")
 
-        // 立即保存可序列化的值
+    // 构造函数 (用于测试)
+    public RegionItem(LatLng latLng, String noteId, String title, String photoUrl,
+                      String authorName, String authorAvatarUrl, int likeCount,
+                      String description, String noteType, String locationName) {
+        this.mLatLng = latLng;
         this.mLatitude = latLng.latitude;
         this.mLongitude = latLng.longitude;
+        this.noteId = noteId;
+        this.title = title;
+        this.photoUrl = photoUrl;
+        this.authorName = authorName;
+        this.authorAvatarUrl = authorAvatarUrl;
+        this.likeCount = likeCount;
+        this.description = description;
+        this.noteType = noteType;
+        this.locationName = locationName;
     }
 
-    // 兼容旧的构造函数
+    // 兼容旧的构造函数 (用于 initClusterData)
     public RegionItem(LatLng latLng, String title) {
-        this(latLng, title, null);
+        this(latLng, "id_" + title, title, null,
+                "测试用户", null, (int)(Math.random() * 100),
+                "这是笔记的正文内容，用于测试显示。This is the note description.", // 默认正文
+                "风景", // 默认类型
+                "北京市朝阳区" // 默认地点
+        );
     }
 
-    // 【4. 关键修改】重写 getPosition()
+    // --- Getters (用于 Adapter 绑定数据) ---
+
     @Override
     public LatLng getPosition() {
-        // 当对象被反序列化（在新 Activity 中）时，mLatLng 会是 null
-        // 我们需要用保存的 double 值将其重新创建出来
         if (mLatLng == null) {
             mLatLng = new LatLng(mLatitude, mLongitude);
         }
         return mLatLng;
     }
 
-    // (Getters 保持不变)
-    public String getTitle() {
-        return mTitle;
-    }
+    public String getNoteId() { return noteId; }
+    public String getTitle() { return title; }
+    public String getPhotoUrl() { return photoUrl; }
+    public String getAuthorName() { return authorName; }
+    public String getAuthorAvatarUrl() { return authorAvatarUrl; }
+    public int getLikeCount() { return likeCount; }
 
-    public String getPhotoUrl() {
-        return photoUrl;
-    }
+    // 【新增】Getters
+    public String getDescription() { return description; }
+    public String getNoteType() { return noteType; }
+    public String getLocationName() { return locationName; }
 }

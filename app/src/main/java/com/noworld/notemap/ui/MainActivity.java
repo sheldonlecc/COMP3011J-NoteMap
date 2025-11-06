@@ -625,17 +625,21 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
         } else if (clusterItems.size() == 1) {
 
-            // [调试点 7] 确认进入了 "单个笔记" 逻辑
-            Log.d("ClusterDebug", "进入了 else if (clusterItems.size() == 1) 逻辑块。");
-
+            // [单个笔记] 用户点击了未聚合的单个笔记
             ClusterItem item = clusterItems.get(0);
-            String title = "（未知标题）";
-
             if (item instanceof RegionItem) {
-                title = ((RegionItem) item).getTitle();
-            }
+                RegionItem note = (RegionItem) item;
 
-            Toast.makeText(this, "点击了单个笔记: " + title, Toast.LENGTH_SHORT).show();
+                // [修改] 启动 NoteDetailActivity
+                Intent intent = new Intent(this, NoteDetailActivity.class);
+                // 【关键】将整个笔记对象传递过去
+                intent.putExtra(NoteDetailActivity.EXTRA_NOTE_DATA, note);
+                startActivity(intent);
+
+            } else {
+                // [删除] 临时提示
+                // Toast.makeText(this, "点击了单个笔记: " + title, Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
