@@ -1,27 +1,25 @@
-# FindMyCar
+## Build & Run Instructions: AMap SDK Key Restriction
 
-基于高德地图API的车辆定位安卓app
+**IMPORTANT NOTE:**
 
-- 车辆定位功能
-    - [x] 车辆位置标记
-    - [x] 车辆位置图片
-    - [x] 移动摄像机到车辆标点位置
-- 导航至车辆位置
-    - [x] ~~导航至车辆位置~~跳转至高德地图app导航
+This project uses the AMap (GaoDe Maps) SDK for all map, location, and routing functionalities.
 
-## 基础功能截图
+As per AMap's security policy, the API Key is strictly bound to the developer's SHA1 signature certificate. The API Key currently in the source code is bound to the SHA1 debug certificate on my local development machine.
 
-1. 界面
-   ![image](./images/1.jpg)
-2. 添加车辆标记
-   ![image](./images/2.jpg)
-3. 添加车辆图片
-   ![image](./images/3.jpg)
-4. 选择图片导入方式
-   ![image](./images/4.jpg)
-5. 图片查看效果
-   ![image](./images/5.jpg)
-6. 删除车辆标记
-   ![image](./images/6.jpg)
-7. 跳转至高德地图并导航至车辆位置
-   ![image](./images/7.jpg)
+**What this means for you (the reviewer):**
+
+1.  When you build and run the source code on your computer, Android Studio will use **your local SHA1 debug certificate**, which is different from mine.
+2.  This will cause the AMap server to **fail the authentication** (this is the intended security mechanism).
+3.  As a result, the map will **fail to load** (it will likely appear as a blank grid), and you will see authentication errors in the Logcat.
+
+**How to Review This Project:**
+
+**All implemented features (map loading, clustering, route planning, adding notes, etc.) are fully demonstrated in the accompanying MP4 video file: `[Your-Video-File-Name].mp4`.**
+
+This video was recorded in the correctly configured environment and serves as proof of all current functionalities.
+
+If you wish to run the project locally, you would need to:
+1.  Go to the AMap Open Platform (amap.com) to register for a new API Key.
+2.  Get the SHA1 debug certificate fingerprint from your local machine.
+3.  Bind your new Key to your SHA1.
+4.  Replace the API Key in the project's `AndroidManifest.xml` file with your new key.
