@@ -29,5 +29,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FindMyCar"
+rootProject.name = "NoteMap"
 include ':app'
