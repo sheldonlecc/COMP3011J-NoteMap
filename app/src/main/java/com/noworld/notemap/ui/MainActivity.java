@@ -537,10 +537,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         mLocationClient = null;
     }
 
-    // =========================================================================
-    // [两个 onClick 方法 - 唯一的方法定义]
-    // =========================================================================
-
     /**
      * [唯一] 方法一：处理地图聚合点 (Cluster) 的点击事件
      * 实现 ClusterClickListener 接口

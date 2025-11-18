@@ -44,6 +44,10 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ui.LoginActivity" />
+
+        <activity android:name=".ui.RegisterActivity" />
+
         <activity
             android:name=".ui.NoteDetailActivity"
             android:label="笔记详情"
