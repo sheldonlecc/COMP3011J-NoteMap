@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "296215444604",
+    "project_id": "notemap-aed61",
+    "storage_bucket": "notemap-aed61.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:296215444604:android:7a5cb583d394e60072ddf9",
+        "android_client_info": {
+          "package_name": "com.noworld.notemap"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "296215444604-n996ro3eqromhvamunv1u2onohngutfk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.noworld.notemap",
+            "certificate_hash": "1c88ed9069f97e4c512222541e90210cd73c0d10"
+          }
+        },
+        {
+          "client_id": "296215444604-n0h7da0a3nbvdb6qsohquk55o9dc11vi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCu4YFDyFVRqsuvyKrM8oJK9c4S_zcGAvc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "296215444604-n0h7da0a3nbvdb6qsohquk55o9dc11vi.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
