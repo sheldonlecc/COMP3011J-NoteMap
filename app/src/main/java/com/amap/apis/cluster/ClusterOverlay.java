@@ -45,7 +45,7 @@ public class ClusterOverlay implements AMap.OnCameraChangeListener,
     private ClusterRender mClusterRender;
     private List<Marker> mAddMarkers = new ArrayList<Marker>();
     private double mClusterDistance;
-    private LruCache<Integer, BitmapDescriptor> mLruCache;
+    private LruCache<String, BitmapDescriptor> mLruCache;
     private HandlerThread mMarkerHandlerThread = new HandlerThread("addMarker");
     private HandlerThread mSignClusterThread = new HandlerThread("calculateCluster");
     private Handler mMarkerhandler;
@@ -77,8 +77,8 @@ public class ClusterOverlay implements AMap.OnCameraChangeListener,
     public ClusterOverlay(AMap amap, List<ClusterItem> clusterItems,
                           int clusterSize, Context context) {
         //默认最多会缓存80张图片作为聚合显示元素图片,根据自己显示需求和app使用内存情况,可以修改数量
-        mLruCache = new LruCache<Integer, BitmapDescriptor>(80) {
-            protected void entryRemoved(boolean evicted, Integer key, BitmapDescriptor oldValue, BitmapDescriptor newValue) {
+        mLruCache = new LruCache<String, BitmapDescriptor>(120) {
+            protected void entryRemoved(boolean evicted, String key, BitmapDescriptor oldValue, BitmapDescriptor newValue) {
                 reycleBitmap(oldValue.getBitmap());
             }
         };
@@ -222,7 +222,7 @@ public class ClusterOverlay implements AMap.OnCameraChangeListener,
         LatLng latlng = cluster.getCenterLatLng();
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.anchor(0.5f, 0.5f)
-                .icon(getBitmapDes(cluster.getClusterCount())).position(latlng);
+                .icon(getBitmapDes(cluster)).position(latlng);
         Marker marker = mAMap.addMarker(markerOptions);
         marker.setAnimation(mADDAnimation);
         marker.setObject(cluster);
@@ -335,27 +335,41 @@ public class ClusterOverlay implements AMap.OnCameraChangeListener,
     /**
      * 获取每个聚合点的绘制样式
      */
-    private BitmapDescriptor getBitmapDes(int num) {
-        BitmapDescriptor bitmapDescriptor = mLruCache.get(num);
-        if (bitmapDescriptor == null) {
-            TextView textView = new TextView(mContext);
-            if (num > 1) {
-                String tile = String.valueOf(num);
-                textView.setText(tile);
-            }
-            textView.setGravity(Gravity.CENTER);
-            textView.setTextColor(Color.BLACK);
-            textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            if (mClusterRender != null && mClusterRender.getDrawAble(num) != null) {
-                textView.setBackgroundDrawable(mClusterRender.getDrawAble(num));
-            } else {
-                //textView.setBackgroundResource(R.drawable.defaultcluster);
-            }
-            bitmapDescriptor = BitmapDescriptorFactory.fromView(textView);
-            mLruCache.put(num, bitmapDescriptor);
-
+    private BitmapDescriptor getBitmapDes(Cluster cluster) {
+        int clusterCount = cluster.getClusterCount();
+        String cacheKey = buildCacheKey(cluster, clusterCount);
+        BitmapDescriptor bitmapDescriptor = mLruCache.get(cacheKey);
+        if (bitmapDescriptor != null) {
+            return bitmapDescriptor;
         }
-        return bitmapDescriptor;
+
+        if (mClusterRender != null) {
+            BitmapDescriptor customDescriptor = mClusterRender.getBitmapDescriptor(cluster);
+            if (customDescriptor != null) {
+                mLruCache.put(cacheKey, customDescriptor);
+                return customDescriptor;
+            }
+        }
+
+        TextView textView = new TextView(mContext);
+        if (clusterCount > 1) {
+            String tile = String.valueOf(clusterCount);
+            textView.setText(tile);
+        }
+        textView.setGravity(Gravity.CENTER);
+        textView.setTextColor(Color.BLACK);
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        BitmapDescriptor defaultDescriptor = BitmapDescriptorFactory.fromView(textView);
+        mLruCache.put(cacheKey, defaultDescriptor);
+        return defaultDescriptor;
+    }
+
+    private String buildCacheKey(Cluster cluster, int clusterCount) {
+        if (clusterCount <= 1 && !cluster.getClusterItems().isEmpty()) {
+            LatLng latLng = cluster.getClusterItems().get(0).getPosition();
+            return "single_" + latLng.latitude + "_" + latLng.longitude;
+        }
+        return "cluster_" + clusterCount;
     }
 
     /**
@@ -363,8 +377,8 @@ public class ClusterOverlay implements AMap.OnCameraChangeListener,
      */
     private void updateCluster(Cluster cluster) {
 
-            Marker marker = cluster.getMarker();
-            marker.setIcon(getBitmapDes(cluster.getClusterCount()));
+        Marker marker = cluster.getMarker();
+            marker.setIcon(getBitmapDes(cluster));
 
 
     }

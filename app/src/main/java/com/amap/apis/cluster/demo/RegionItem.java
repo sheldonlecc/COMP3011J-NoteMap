@@ -22,6 +22,7 @@ public class RegionItem implements ClusterItem, Serializable {
     private String authorName;
     private String authorAvatarUrl;
     private int likeCount;
+    private boolean likedByCurrentUser;
 
     // 3. 【新增】详情页所需数据
     private String description;     // 笔记正文/描述
@@ -44,6 +45,7 @@ public class RegionItem implements ClusterItem, Serializable {
         this.description = description;
         this.noteType = noteType;
         this.locationName = locationName;
+        this.likedByCurrentUser = false;
     }
 
     // 兼容旧的构造函数 (用于 initClusterData)
@@ -72,6 +74,9 @@ public class RegionItem implements ClusterItem, Serializable {
     public String getAuthorName() { return authorName; }
     public String getAuthorAvatarUrl() { return authorAvatarUrl; }
     public int getLikeCount() { return likeCount; }
+    public void setLikeCount(int likeCount) { this.likeCount = Math.max(0, likeCount); }
+    public boolean isLikedByCurrentUser() { return likedByCurrentUser; }
+    public void setLikedByCurrentUser(boolean likedByCurrentUser) { this.likedByCurrentUser = likedByCurrentUser; }
 
     // 【新增】Getters
     public String getDescription() { return description; }

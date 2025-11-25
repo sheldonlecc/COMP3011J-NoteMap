@@ -80,15 +80,24 @@
     <TextView
         android:id="@+id/tv_signature"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="16dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
         android:layout_marginEnd="16dp"
         android:text="[这里是个人签名...]"
         android:textSize="14sp"
-        app:layout_constraintBottom_toTopOf="@id/guideline_top"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@id/cv_avatar"
         app:layout_constraintTop_toBottomOf="@id/cv_avatar" />
+
+    <Button
+        android:id="@+id/btn_profile_action"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:text="去登录"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_signature" />
 
 
     <!-- 4. 标签栏 (在 1/3 分割线上) -->

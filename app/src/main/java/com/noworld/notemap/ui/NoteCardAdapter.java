@@ -11,22 +11,24 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.noworld.notemap.R;
-import com.amap.apis.cluster.demo.RegionItem;
-import java.util.List;
 
-// [新增] 图片加载库 (您需要在 build.gradle 中添加 Glide 依赖)
-// implementation 'com.github.bumptech.glide:glide:4.12.0'
+import com.amap.apis.cluster.demo.RegionItem;
 import com.bumptech.glide.Glide;
+import com.noworld.notemap.R;
+import com.noworld.notemap.data.NoteLikeManager;
+
+import java.util.List;
 
 public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHolder> {
 
     private final Context mContext;
     private final List<RegionItem> mNotesList;
+    private final NoteLikeManager likeManager;
 
     public NoteCardAdapter(Context context, List<RegionItem> notesList) {
         this.mContext = context;
         this.mNotesList = notesList;
+        this.likeManager = NoteLikeManager.getInstance();
     }
 
     @NonNull
@@ -45,6 +47,7 @@ public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHo
         holder.tvTitle.setText(note.getTitle());
         holder.tvAuthorName.setText(note.getAuthorName());
         holder.tvLikeCount.setText(String.valueOf(note.getLikeCount()));
+        updateLikeIcon(holder, note);
 
         // [依赖 Member B] 加载图片 (使用 Glide)
         // 封面图 (占位符)
@@ -74,6 +77,8 @@ public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHo
             // [删除] 临时提示
             // Toast.makeText(mContext, "点击了笔记: " + note.getTitle(), Toast.LENGTH_SHORT).show();
         });
+
+        holder.ivLikeIcon.setOnClickListener(v -> handleLikeClicked(holder, note));
     }
 
     @Override
@@ -99,5 +104,37 @@ public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHo
             ivLikeIcon = itemView.findViewById(R.id.iv_like_icon);
             tvLikeCount = itemView.findViewById(R.id.tv_like_count);
         }
+    }
+
+    private void updateLikeIcon(ViewHolder holder, RegionItem note) {
+        holder.ivLikeIcon.setImageResource(
+                note.isLikedByCurrentUser() ? R.drawable.ic_like_filled : R.drawable.ic_like
+        );
+    }
+
+    private void handleLikeClicked(ViewHolder holder, RegionItem note) {
+        likeManager.toggleLike(note, new NoteLikeManager.LikeCallback() {
+            @Override
+            public void onResult(boolean liked, int likeCount) {
+                note.setLikedByCurrentUser(liked);
+                note.setLikeCount(likeCount);
+                int position = holder.getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION) {
+                    notifyItemChanged(position);
+                }
+            }
+
+            @Override
+            public void onRequireLogin() {
+                Toast.makeText(mContext, "请先登录后再点赞", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(mContext, LoginActivity.class);
+                mContext.startActivity(intent);
+            }
+
+            @Override
+            public void onError(@NonNull Exception e) {
+                Toast.makeText(mContext, "点赞失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

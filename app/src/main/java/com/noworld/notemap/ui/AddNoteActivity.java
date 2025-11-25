@@ -2,10 +2,11 @@ package com.noworld.notemap.ui;
 
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.util.Log; // [新增] 导入 Log
+import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
@@ -19,20 +20,23 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 
-// [新增] 导入逆地理编码相关的包
 import com.amap.api.services.core.LatLonPoint;
 import com.amap.api.services.geocoder.GeocodeResult;
 import com.amap.api.services.geocoder.GeocodeSearch;
 import com.amap.api.services.geocoder.RegeocodeQuery;
-import com.amap.api.services.geocoder.RegeocodeResult; // [新增] 导入 RegeocodeResult
-
+import com.amap.api.services.geocoder.RegeocodeResult;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.noworld.notemap.R;
+import com.noworld.notemap.data.FirebaseNoteRepository;
+import com.noworld.notemap.data.MapNote;
 
-import android.widget.Toast;
+import java.util.ArrayList;
+import java.util.List;
 
-// [修改] 实现 OnGeocodeSearchListener 接口
 public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.OnGeocodeSearchListener {
 
     private Toolbar toolbar;
@@ -46,6 +50,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     private Button btnPublish;
 
     private ActivityResultLauncher<Intent> pickImageLauncher;
+    private ActivityResultLauncher<String> mediaPermissionLauncher;
     private Uri selectedImageUri = null;
     private double currentLat = 0;
     private double currentLng = 0;
@@ -57,6 +62,10 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     private final CharSequence[] noteTypes = {
             "种草", "攻略", "测评", "分享", "合集", "教程", "开箱", "Vlog", "探店"
     };
+
+    private FirebaseNoteRepository noteRepository;
+    private FirebaseAuth auth;
+    private boolean isPublishing = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +90,9 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
 
+        noteRepository = FirebaseNoteRepository.getInstance();
+        auth = FirebaseAuth.getInstance();
+
         // 3. 获取从 MainActivity 传来的当前位置
         currentLat = getIntent().getDoubleExtra("CURRENT_LAT", 0);
         currentLng = getIntent().getDoubleExtra("CURRENT_LNG", 0);
@@ -88,6 +100,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
         // 4. 初始化图片选择器
         initImagePicker();
+        initMediaPermission();
 
         // 5. [新增] 初始化地理编码查询器
         try {
@@ -114,14 +127,22 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                 });
     }
 
+    private void initMediaPermission() {
+        mediaPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                granted -> {
+                    if (granted) {
+                        openGallery();
+                    } else {
+                        Toast.makeText(this, "需要相册读取权限以选择图片", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
     private void setupClickListeners() {
         // 点击方框 (+) 添加图片
         ivAddImage.setOnClickListener(v -> {
-            // 启动相册
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("image/*");
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            pickImageLauncher.launch(intent);
+            ensureMediaPermissionAndPickImage();
         });
 
         // 点击 "笔记类型" 行
@@ -145,11 +166,28 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
         // 点击 "发布" 按钮
         btnPublish.setOnClickListener(v -> {
-            // 提示：这是后端同学实现 P1 [cite:"uploaded:MapNotes_Project_Outline(1).docx"] 功能的地方
-            // (他们需要获取 etTitle.getText(), etStory.getText(), selectedImageUri, tvNoteTypeValue.getText(), currentLat, currentLng)
-            // 并且 tvLocationValue.getText() 现在是中文地址了
-            Toast.makeText(this, "点击了 [发布] (UI占位符)", Toast.LENGTH_SHORT).show();
+            if (!isPublishing) {
+                publishNote();
+            }
         });
+    }
+
+    private void ensureMediaPermissionAndPickImage() {
+        String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                ? android.Manifest.permission.READ_MEDIA_IMAGES
+                : android.Manifest.permission.READ_EXTERNAL_STORAGE;
+        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
+            openGallery();
+        } else {
+            mediaPermissionLauncher.launch(permission);
+        }
+    }
+
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        pickImageLauncher.launch(intent);
     }
 
     /**
@@ -178,6 +216,80 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         return super.onOptionsItemSelected(item);
     }
 
+    private void publishNote() {
+        String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
+        String story = etStory.getText() != null ? etStory.getText().toString().trim() : "";
+        String noteType = tvNoteTypeValue.getText() != null ? tvNoteTypeValue.getText().toString().trim() : "";
+        String locationName = tvLocationValue.getText() != null ? tvLocationValue.getText().toString().trim() : "";
+        FirebaseUser user = auth.getCurrentUser();
+
+        if (TextUtils.isEmpty(title)) {
+            Toast.makeText(this, "请输入标题", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (TextUtils.isEmpty(story)) {
+            Toast.makeText(this, "请输入正文", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (TextUtils.isEmpty(noteType)) {
+            Toast.makeText(this, "请选择笔记类型", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (selectedImageUri == null) {
+            Toast.makeText(this, "请选择一张图片", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (currentLat == 0 || currentLng == 0) {
+            Toast.makeText(this, "无法获取定位，请返回地图重试", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (user == null) {
+            Toast.makeText(this, "请先登录再发布笔记", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, LoginActivity.class));
+            return;
+        }
+
+        final String locationNameFinal = TextUtils.isEmpty(locationName) ? "未知地点" : locationName;
+        setPublishing(true);
+        String noteId = noteRepository.generateNoteId();
+        noteRepository.uploadImage(selectedImageUri)
+                .continueWithTask(task -> {
+                    String imageUrl = task.getResult();
+                    if (TextUtils.isEmpty(imageUrl)) {
+                        throw new IllegalStateException("图片上传失败");
+                    }
+                    List<String> images = new ArrayList<>();
+                    images.add(imageUrl);
+                    MapNote note = new MapNote(
+                            title,
+                            story,
+                            noteType,
+                            currentLat,
+                            currentLng,
+                            locationNameFinal,
+                            images,
+                            user.getUid(),
+                            !TextUtils.isEmpty(user.getDisplayName()) ? user.getDisplayName() : "地图用户",
+                            user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : null
+                    );
+                    return noteRepository.publishNote(note, noteId);
+                })
+                .addOnSuccessListener(unused -> {
+                    Toast.makeText(this, "发布成功！", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "发布失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
+                    setPublishing(false);
+                });
+    }
+
+    private void setPublishing(boolean publishing) {
+        isPublishing = publishing;
+        btnPublish.setEnabled(!publishing);
+        btnPublish.setText(publishing ? "发布中..." : "发布");
+    }
+
     // [新增] 逆地理编码的回调方法
     @Override
     public void onRegeocodeSearched(RegeocodeResult result, int rCode) {
@@ -201,4 +313,3 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         // 正向地理编码（地址转坐标）的回调，我们用不到
     }
 }
-
