@@ -434,9 +434,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                 @Override
                 public boolean onQueryTextSubmit(String query) {
                     applySearchQuery(query);
-                    if (displayedNotes.isEmpty()) {
-                        searchLocation(query);
-                    } else {
+                    searchLocation(query); // 始终触发地点搜索
+                    if (!displayedNotes.isEmpty()) {
                         showSearchSheet();
                     }
                     searchView.clearFocus(); // 收起键盘，反馈搜索已触发
