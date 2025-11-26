@@ -1,6 +1,5 @@
 package com.noworld.notemap.ui;
 
-import android.net.Uri;
 import android.os.Bundle;
 import android.widget.ImageView;
 
@@ -8,10 +7,11 @@ import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.noworld.notemap.R;
-
-import java.io.File;
+import com.bumptech.glide.Glide;
 
 public class PictureActivity extends AppCompatActivity {
+
+    public static final String EXTRA_IMAGE_URL = "EXTRA_IMAGE_URL";
 
     private ImageView iv_picture;
 
@@ -24,6 +24,8 @@ public class PictureActivity extends AppCompatActivity {
         initView();
 
         initPicture();
+
+        iv_picture.setOnClickListener(v -> finish());
     }
 
     private void initView() {
@@ -31,10 +33,15 @@ public class PictureActivity extends AppCompatActivity {
     }
 
     private void initPicture() {
-        // 从/data/data/com.noworld.findmycar/files/car.png文件中加载图片
-        File file = new File(getFilesDir(), "car.png");
-        if (file.exists()) {
-            iv_picture.setImageURI(Uri.fromFile(file));
+        String url = getIntent().getStringExtra(EXTRA_IMAGE_URL);
+        if (url != null && !url.isEmpty()) {
+            Glide.with(this)
+                    .load(url)
+                    .placeholder(R.drawable.ic_car)
+                    .error(R.drawable.ic_car)
+                    .into(iv_picture);
+        } else {
+            Glide.with(this).load(R.drawable.ic_car).into(iv_picture);
         }
     }
 }

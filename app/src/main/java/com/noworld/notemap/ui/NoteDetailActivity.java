@@ -5,6 +5,7 @@ import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.Intent;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,6 +26,7 @@ public class NoteDetailActivity extends AppCompatActivity {
     private TextView tvDetailDescription;
     private TextView tvDetailType;
     private TextView tvDetailLocation;
+    private String photoUrl;
 
     // (未来还可以添加作者信息)
 
@@ -58,6 +60,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvDetailDescription = findViewById(R.id.tv_detail_description);
         tvDetailType = findViewById(R.id.tv_detail_type);
         tvDetailLocation = findViewById(R.id.tv_detail_location);
+        ivDetailPhoto.setOnClickListener(v -> openFullImage());
     }
 
     private void initToolbar() {
@@ -76,8 +79,9 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvDetailLocation.setText("拍摄地点: " + mNote.getLocationName());
 
         // 使用 Glide 加载图片 (依赖 Member B 提供 URL)
+        photoUrl = mNote.getPhotoUrl();
         Glide.with(this)
-                .load(mNote.getPhotoUrl())
+                .load(photoUrl)
                 .placeholder(R.drawable.ic_car) // 占位图
                 .error(R.drawable.ic_car)       // 失败图
                 .into(ivDetailPhoto);
@@ -91,5 +95,12 @@ public class NoteDetailActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void openFullImage() {
+        if (photoUrl == null || photoUrl.isEmpty()) return;
+        Intent intent = new Intent(this, PictureActivity.class);
+        intent.putExtra(PictureActivity.EXTRA_IMAGE_URL, photoUrl);
+        startActivity(intent);
     }
 }
