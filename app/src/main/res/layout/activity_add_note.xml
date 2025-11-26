@@ -73,8 +73,7 @@
             android:maxLength="400" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- 5. 添加图片 (正方形方框) -->
-    <!-- 我用 CardView 来创建带阴影的方框 -->
+    <!-- 5. 添加图片 (入口按钮 + 预览列表) -->
     <androidx.cardview.widget.CardView
         android:id="@+id/card_add_image"
         android:layout_width="120dp"
@@ -94,6 +93,17 @@
             android:background="?attr/selectableItemBackground"
             android:contentDescription="添加图片" />
     </androidx.cardview.widget.CardView>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_image_preview"
+        android:layout_width="0dp"
+        android:layout_height="120dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toTopOf="@id/card_add_image"
+        app:layout_constraintStart_toEndOf="@id/card_add_image"
+        app:layout_constraintEnd_toEndOf="@id/input_layout_story"
+        tools:listitem="@layout/item_image_preview" />
 
     <!-- 6. 笔记类型栏 -->
     <RelativeLayout

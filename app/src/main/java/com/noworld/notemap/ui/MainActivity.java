@@ -327,6 +327,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         } else {
             requestPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION);
         }
+        // 重新拉取笔记，确保发布后返回主页能看到最新数据
+        subscribeNotes();
     }
 
     @Override

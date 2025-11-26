@@ -103,6 +103,7 @@ public class MapNote {
                 type,
                 locationName
         );
+        item.setImageUrls(imageUrls);
         return item;
     }
 

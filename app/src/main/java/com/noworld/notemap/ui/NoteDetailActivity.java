@@ -2,18 +2,24 @@ package com.noworld.notemap.ui;
 
 import android.os.Bundle;
 import android.view.MenuItem;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.content.Intent;
+import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.viewpager2.widget.ViewPager2;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.amap.apis.cluster.demo.RegionItem; // 【重要】导入您的笔记模型
 import com.bumptech.glide.Glide; // 导入 Glide
 import com.noworld.notemap.R;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class NoteDetailActivity extends AppCompatActivity {
 
@@ -21,12 +27,14 @@ public class NoteDetailActivity extends AppCompatActivity {
     private RegionItem mNote;
 
     private Toolbar toolbar;
-    private ImageView ivDetailPhoto;
+    private ViewPager2 vpDetailPhotos;
+    private TextView tvPhotoIndicator;
     private TextView tvDetailTitle;
     private TextView tvDetailDescription;
     private TextView tvDetailType;
     private TextView tvDetailLocation;
-    private String photoUrl;
+    private final List<String> photoUrls = new ArrayList<>();
+    private int currentIndex = 0;
 
     // (未来还可以添加作者信息)
 
@@ -55,12 +63,12 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     private void initView() {
         toolbar = findViewById(R.id.toolbar_note_detail);
-        ivDetailPhoto = findViewById(R.id.iv_detail_photo);
+        vpDetailPhotos = findViewById(R.id.vp_detail_photos);
+        tvPhotoIndicator = findViewById(R.id.tv_photo_indicator);
         tvDetailTitle = findViewById(R.id.tv_detail_title);
         tvDetailDescription = findViewById(R.id.tv_detail_description);
         tvDetailType = findViewById(R.id.tv_detail_type);
         tvDetailLocation = findViewById(R.id.tv_detail_location);
-        ivDetailPhoto.setOnClickListener(v -> openFullImage());
     }
 
     private void initToolbar() {
@@ -78,13 +86,16 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvDetailType.setText("笔记类型: " + mNote.getNoteType());
         tvDetailLocation.setText("拍摄地点: " + mNote.getLocationName());
 
-        // 使用 Glide 加载图片 (依赖 Member B 提供 URL)
-        photoUrl = mNote.getPhotoUrl();
-        Glide.with(this)
-                .load(photoUrl)
-                .placeholder(R.drawable.ic_car) // 占位图
-                .error(R.drawable.ic_car)       // 失败图
-                .into(ivDetailPhoto);
+        photoUrls.clear();
+        if (mNote.getImageUrls() != null && !mNote.getImageUrls().isEmpty()) {
+            photoUrls.addAll(mNote.getImageUrls());
+        } else if (mNote.getPhotoUrl() != null) {
+            photoUrls.add(mNote.getPhotoUrl());
+        }
+        if (photoUrls.isEmpty()) {
+            photoUrls.add(null);
+        }
+        setupViewPager();
     }
 
     // 处理 Toolbar 的返回按钮
@@ -98,9 +109,72 @@ public class NoteDetailActivity extends AppCompatActivity {
     }
 
     private void openFullImage() {
+        String photoUrl = photoUrls.get(currentIndex);
         if (photoUrl == null || photoUrl.isEmpty()) return;
         Intent intent = new Intent(this, PictureActivity.class);
         intent.putExtra(PictureActivity.EXTRA_IMAGE_URL, photoUrl);
         startActivity(intent);
+    }
+
+    private void setupViewPager() {
+        vpDetailPhotos.setAdapter(new PhotoPagerAdapter(photoUrls, this::openFullImage));
+        updateIndicator(0);
+        vpDetailPhotos.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                currentIndex = position;
+                updateIndicator(position);
+            }
+        });
+    }
+
+    private void updateIndicator(int position) {
+        tvPhotoIndicator.setText((position + 1) + "/" + photoUrls.size());
+    }
+
+    private static class PhotoPagerAdapter extends RecyclerView.Adapter<PhotoPagerAdapter.PhotoVH> {
+        private final List<String> data;
+        private final Runnable onClick;
+
+        PhotoPagerAdapter(List<String> data, Runnable onClick) {
+            this.data = data;
+            this.onClick = onClick;
+        }
+
+        @NonNull
+        @Override
+        public PhotoVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            ImageView iv = new ImageView(parent.getContext());
+            iv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            return new PhotoVH(iv, onClick);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull PhotoVH holder, int position) {
+            String url = data.get(position);
+            Glide.with(holder.iv.getContext())
+                    .load(url)
+                    .placeholder(R.drawable.ic_car)
+                    .error(R.drawable.ic_car)
+                    .into(holder.iv);
+        }
+
+        @Override
+        public int getItemCount() {
+            return data.size();
+        }
+
+        static class PhotoVH extends RecyclerView.ViewHolder {
+            ImageView iv;
+
+            PhotoVH(@NonNull ImageView itemView, Runnable onClick) {
+                super(itemView);
+                this.iv = itemView;
+                itemView.setOnClickListener(v -> {
+                    if (onClick != null) onClick.run();
+                });
+            }
+        }
     }
 }

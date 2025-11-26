@@ -9,6 +9,8 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -21,6 +23,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.amap.api.services.core.LatLonPoint;
 import com.amap.api.services.geocoder.GeocodeResult;
@@ -33,16 +37,20 @@ import com.noworld.notemap.data.AliNoteRepository;
 import com.noworld.notemap.data.MapNote;
 import com.noworld.notemap.data.TokenStore;
 import com.noworld.notemap.data.UserStore;
+import com.bumptech.glide.Glide;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.OnGeocodeSearchListener {
 
+    private static final int MAX_IMAGES = 9;
+
     private Toolbar toolbar;
     private TextInputEditText etTitle;
     private TextInputEditText etStory;
     private ImageView ivAddImage;
+    private androidx.recyclerview.widget.RecyclerView rvImagePreview;
     private RelativeLayout rowNoteType;
     private TextView tvNoteTypeValue;
     private RelativeLayout rowLocation;
@@ -51,7 +59,8 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
     private ActivityResultLauncher<Intent> pickImageLauncher;
     private ActivityResultLauncher<String> mediaPermissionLauncher;
-    private Uri selectedImageUri = null;
+    private final List<Uri> selectedImageUris = new ArrayList<>();
+    private ImagePreviewAdapter imagePreviewAdapter;
     private double currentLat = 0;
     private double currentLng = 0;
 
@@ -78,6 +87,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         etTitle = findViewById(R.id.et_title);
         etStory = findViewById(R.id.et_story);
         ivAddImage = findViewById(R.id.iv_add_image);
+        rvImagePreview = findViewById(R.id.rv_image_preview);
         rowNoteType = findViewById(R.id.row_note_type);
         tvNoteTypeValue = findViewById(R.id.tv_note_type_value);
         rowLocation = findViewById(R.id.row_location);
@@ -94,6 +104,11 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         noteRepository = AliNoteRepository.getInstance(this);
         tokenStore = TokenStore.getInstance(this);
         userStore = UserStore.getInstance(this);
+
+        // 图片预览列表
+        rvImagePreview.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        imagePreviewAdapter = new ImagePreviewAdapter(selectedImageUris);
+        rvImagePreview.setAdapter(imagePreviewAdapter);
 
         // 3. 获取从 MainActivity 传来的当前位置
         currentLat = getIntent().getDoubleExtra("CURRENT_LAT", 0);
@@ -121,10 +136,23 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        selectedImageUri = result.getData().getData();
-                        // 将图片显示到 ImageView
-                        ivAddImage.setImageURI(selectedImageUri);
-                        ivAddImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                        if (result.getData().getClipData() != null) {
+                            int count = result.getData().getClipData().getItemCount();
+                            for (int i = 0; i < count; i++) {
+                                Uri uri = result.getData().getClipData().getItemAt(i).getUri();
+                                if (uri != null && selectedImageUris.size() < MAX_IMAGES) {
+                                    selectedImageUris.add(uri);
+                                }
+                            }
+                        } else if (result.getData().getData() != null) {
+                            if (selectedImageUris.size() < MAX_IMAGES) {
+                                selectedImageUris.add(result.getData().getData());
+                            }
+                        }
+                        if (selectedImageUris.size() >= MAX_IMAGES) {
+                            Toast.makeText(this, "最多选择9张图片", Toast.LENGTH_SHORT).show();
+                        }
+                        imagePreviewAdapter.notifyDataSetChanged();
                     }
                 });
     }
@@ -189,7 +217,37 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         pickImageLauncher.launch(intent);
+    }
+
+    private void uploadAllImages(List<Uri> uris, UploadAllCallback callback) {
+        if (uris == null || uris.isEmpty()) {
+            callback.onError(new IllegalArgumentException("没有选择图片"));
+            return;
+        }
+        List<String> uploaded = new ArrayList<>();
+        uploadNext(uris, 0, uploaded, callback);
+    }
+
+    private void uploadNext(List<Uri> uris, int index, List<String> uploaded, UploadAllCallback callback) {
+        if (index >= uris.size()) {
+            callback.onSuccess(uploaded);
+            return;
+        }
+        Uri uri = uris.get(index);
+        noteRepository.uploadImage(uri, new AliNoteRepository.UploadCallback() {
+            @Override
+            public void onSuccess(String fileUrl) {
+                uploaded.add(fileUrl);
+                uploadNext(uris, index + 1, uploaded, callback);
+            }
+
+            @Override
+            public void onError(@NonNull Throwable throwable) {
+                callback.onError(throwable);
+            }
+        });
     }
 
     /**
@@ -236,8 +294,12 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             Toast.makeText(this, "请选择笔记类型", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (selectedImageUri == null) {
-            Toast.makeText(this, "请选择一张图片", Toast.LENGTH_SHORT).show();
+        if (selectedImageUris.isEmpty()) {
+            Toast.makeText(this, "请选择至少一张图片", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (selectedImageUris.size() > MAX_IMAGES) {
+            Toast.makeText(this, "最多可上传9张图片", Toast.LENGTH_SHORT).show();
             return;
         }
         if (currentLat == 0 || currentLng == 0) {
@@ -252,11 +314,9 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
         final String locationNameFinal = TextUtils.isEmpty(locationName) ? "未知地点" : locationName;
         setPublishing(true);
-        noteRepository.uploadImage(selectedImageUri, new AliNoteRepository.UploadCallback() {
+        uploadAllImages(selectedImageUris, new UploadAllCallback() {
             @Override
-            public void onSuccess(String fileUrl) {
-                List<String> images = new ArrayList<>();
-                images.add(fileUrl);
+            public void onSuccess(List<String> imageUrls) {
                 String authorId = userStore.ensureUid(userStore.getUid());
                 String authorName = TextUtils.isEmpty(userStore.getUsername()) ? "地图用户" : userStore.getUsername();
                 String avatarUrl = userStore.getAvatarUrl();
@@ -267,7 +327,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                         currentLat,
                         currentLng,
                         locationNameFinal,
-                        images,
+                        imageUrls,
                         authorId,
                         authorName,
                         avatarUrl
@@ -328,5 +388,50 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     @Override
     public void onGeocodeSearched(GeocodeResult geocodeResult, int i) {
         // 正向地理编码（地址转坐标）的回调，我们用不到
+    }
+
+    private static class ImagePreviewAdapter extends RecyclerView.Adapter<ImagePreviewAdapter.ImageVH> {
+
+        private final List<Uri> data;
+
+        ImagePreviewAdapter(List<Uri> data) {
+            this.data = data;
+        }
+
+        @NonNull
+        @Override
+        public ImageVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_image_preview, parent, false);
+            return new ImageVH(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ImageVH holder, int position) {
+            Uri uri = data.get(position);
+            Glide.with(holder.iv.getContext())
+                    .load(uri)
+                    .centerCrop()
+                    .into(holder.iv);
+        }
+
+        @Override
+        public int getItemCount() {
+            return data.size();
+        }
+
+        static class ImageVH extends RecyclerView.ViewHolder {
+            ImageView iv;
+
+            ImageVH(@NonNull View itemView) {
+                super(itemView);
+                iv = itemView.findViewById(R.id.iv_preview);
+            }
+        }
+    }
+
+    private interface UploadAllCallback {
+        void onSuccess(List<String> imageUrls);
+
+        void onError(@NonNull Throwable throwable);
     }
 }

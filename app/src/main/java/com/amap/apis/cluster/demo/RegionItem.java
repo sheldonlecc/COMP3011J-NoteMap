@@ -5,6 +5,7 @@ package com.amap.apis.cluster.demo;
 import com.amap.api.maps.model.LatLng;
 import com.amap.apis.cluster.ClusterItem;
 import java.io.Serializable;
+import java.util.List;
 
 public class RegionItem implements ClusterItem, Serializable {
 
@@ -28,6 +29,7 @@ public class RegionItem implements ClusterItem, Serializable {
     private String description;     // 笔记正文/描述
     private String noteType;        // 笔记类型 (e.g., "美食", "风景")
     private String locationName;    // 拍摄地点 (e.g., "北京市朝阳区...")
+    private List<String> imageUrls; // 多图
 
     // 构造函数 (用于测试)
     public RegionItem(LatLng latLng, String noteId, String title, String photoUrl,
@@ -82,4 +84,7 @@ public class RegionItem implements ClusterItem, Serializable {
     public String getDescription() { return description; }
     public String getNoteType() { return noteType; }
     public String getLocationName() { return locationName; }
+
+    public List<String> getImageUrls() { return imageUrls; }
+    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
 }
