@@ -27,20 +27,30 @@ import java.util.Set;
 
 public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHolder> {
 
+    public interface OnLikeChangeListener {
+        void onUnlike(RegionItem note);
+    }
+
     private final Context mContext;
     private final List<RegionItem> mNotesList;
     private final AliNoteRepository noteRepository;
     private final LikedStore likedStore;
     private final UserStore userStore;
     private final TokenStore tokenStore;
+    private final OnLikeChangeListener onLikeChangeListener;
 
     public NoteCardAdapter(Context context, List<RegionItem> notesList) {
+        this(context, notesList, null);
+    }
+
+    public NoteCardAdapter(Context context, List<RegionItem> notesList, OnLikeChangeListener listener) {
         this.mContext = context;
         this.mNotesList = notesList;
         this.noteRepository = AliNoteRepository.getInstance(context);
         this.likedStore = LikedStore.getInstance(context);
         this.userStore = UserStore.getInstance(context);
         this.tokenStore = TokenStore.getInstance(context);
+        this.onLikeChangeListener = listener;
     }
 
     @NonNull
@@ -138,6 +148,9 @@ public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHo
                 int position = holder.getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
                     notifyItemChanged(position);
+                }
+                if (!liked && onLikeChangeListener != null) {
+                    onLikeChangeListener.onUnlike(note);
                 }
             }
 

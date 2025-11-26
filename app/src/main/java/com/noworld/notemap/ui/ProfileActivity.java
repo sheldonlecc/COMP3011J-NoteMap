@@ -24,8 +24,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.model.GlideUrl;
@@ -38,7 +38,8 @@ import com.noworld.notemap.data.UserStore;
 import com.noworld.notemap.data.AliNoteRepository;
 import com.noworld.notemap.data.MapNote;
 import com.noworld.notemap.R;
-import com.noworld.notemap.ui.adapter.MyNotesAdapter;
+import com.amap.apis.cluster.demo.RegionItem;
+import com.noworld.notemap.ui.NoteCardAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,8 +63,10 @@ public class ProfileActivity extends AppCompatActivity {
     private TextView tvLikesListPlaceholder;
     private RecyclerView rvMyNotes;
     private ProgressBar progressBar;
-    private MyNotesAdapter myNotesAdapter;
-    private MyNotesAdapter likedNotesAdapter;
+    private NoteCardAdapter myCardsAdapter;
+    private NoteCardAdapter likedCardsAdapter;
+    private final List<RegionItem> likedRegionItems = new ArrayList<>();
+    private final List<RegionItem> myRegionItems = new ArrayList<>();
 
     private ActivityResultLauncher<Intent> avatarPickerLauncher;
     private ActivityResultLauncher<String> avatarPermissionLauncher;
@@ -99,10 +102,10 @@ public class ProfileActivity extends AppCompatActivity {
         rvMyNotes = findViewById(R.id.rv_my_notes);
         progressBar = findViewById(R.id.progress_loading);
 
-        rvMyNotes.setLayoutManager(new LinearLayoutManager(this));
-        myNotesAdapter = new MyNotesAdapter(false, null);
-        likedNotesAdapter = new MyNotesAdapter(true, this::handleUnlikeFromLikes);
-        rvMyNotes.setAdapter(myNotesAdapter);
+        rvMyNotes.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+        myCardsAdapter = new NoteCardAdapter(this, myRegionItems, null);
+        likedCardsAdapter = new NoteCardAdapter(this, likedRegionItems, this::handleUnlikeFromLikes);
+        rvMyNotes.setAdapter(myCardsAdapter);
 
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
@@ -114,13 +117,15 @@ public class ProfileActivity extends AppCompatActivity {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 if (tab.getPosition() == 0) {
-                    rvMyNotes.setAdapter(myNotesAdapter);
+                    rvMyNotes.setAdapter(myCardsAdapter);
+                    rvMyNotes.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
                     rvMyNotes.setVisibility(View.VISIBLE);
                     tvEmpty.setVisibility(View.GONE);
                     tvLikesListPlaceholder.setVisibility(View.GONE);
                     loadMyNotes();
                 } else {
-                    rvMyNotes.setAdapter(likedNotesAdapter);
+                    rvMyNotes.setAdapter(likedCardsAdapter);
+                    rvMyNotes.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
                     rvMyNotes.setVisibility(View.VISIBLE);
                     tvEmpty.setVisibility(View.GONE);
                     tvLikesListPlaceholder.setVisibility(View.GONE);
@@ -195,7 +200,10 @@ public class ProfileActivity extends AppCompatActivity {
             updateLoadingState();
             Toast.makeText(this, "已退出登录", Toast.LENGTH_SHORT).show();
             updateProfileUI();
-            myNotesAdapter.submit(null);
+            myRegionItems.clear();
+            likedRegionItems.clear();
+            myCardsAdapter.notifyDataSetChanged();
+            likedCardsAdapter.notifyDataSetChanged();
             tvEmpty.setVisibility(View.VISIBLE);
             rvMyNotes.setVisibility(View.GONE);
         });
@@ -264,20 +272,21 @@ public class ProfileActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     isNotesLoading = false;
                     updateLoadingState();
-                    List<MapNote> mine = new ArrayList<>();
+                    myRegionItems.clear();
                     for (MapNote n : notes) {
                         if (uid.equals(n.getAuthorId()) || uid.equals(n.getAuthorName())) {
-                            mine.add(n);
+                            RegionItem item = n.toRegionItem();
+                            myRegionItems.add(item);
                         }
                     }
-                    if (mine.isEmpty()) {
+                    if (myRegionItems.isEmpty()) {
                         tvEmpty.setText("暂无作品");
                         tvEmpty.setVisibility(View.VISIBLE);
                         rvMyNotes.setVisibility(View.GONE);
                     } else {
                         tvEmpty.setVisibility(View.GONE);
                         rvMyNotes.setVisibility(View.VISIBLE);
-                        myNotesAdapter.submit(mine);
+                        myCardsAdapter.notifyDataSetChanged();
                     }
                 });
             }
@@ -313,7 +322,8 @@ public class ProfileActivity extends AppCompatActivity {
             isNotesLoading = false;
             updateLoadingState();
             if (tabLayout.getSelectedTabPosition() == 1) {
-                likedNotesAdapter.submit(null);
+                likedRegionItems.clear();
+                likedCardsAdapter.notifyDataSetChanged();
                 rvMyNotes.setVisibility(View.GONE);
                 tvEmpty.setText("暂无点赞");
                 tvEmpty.setVisibility(View.VISIBLE);
@@ -326,15 +336,17 @@ public class ProfileActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     isNotesLoading = false;
                     updateLoadingState();
-                    List<MapNote> likedList = new ArrayList<>();
+                    likedRegionItems.clear();
                     for (MapNote n : notes) {
                         if (n != null && n.getId() != null && likedIds.contains(n.getId())) {
-                            likedList.add(n);
+                            RegionItem item = n.toRegionItem();
+                            item.setLikedByCurrentUser(true);
+                            likedRegionItems.add(item);
                         }
                     }
-                    likedNotesAdapter.submit(likedList);
+                    likedCardsAdapter.notifyDataSetChanged();
                     if (tabLayout.getSelectedTabPosition() == 1) {
-                        if (likedList.isEmpty()) {
+                        if (likedRegionItems.isEmpty()) {
                             rvMyNotes.setVisibility(View.GONE);
                             tvEmpty.setText("暂无点赞");
                             tvEmpty.setVisibility(View.VISIBLE);
@@ -361,24 +373,25 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    private void handleUnlikeFromLikes(MapNote note) {
-        if (note == null) return;
+    private void handleUnlikeFromLikes(RegionItem regionItem) {
+        if (regionItem == null) return;
         AliNoteRepository.LikeCallback callback = new AliNoteRepository.LikeCallback() {
             @Override
             public void onResult(boolean liked, int likeCount) {
-                note.setLikeCount(likeCount);
-                likedStore.saveLikeCount(note.getId(), likeCount);
+                likedStore.saveLikeCount(regionItem.getNoteId(), likeCount);
                 if (!liked) {
-                    likedNotesAdapter.removeById(note.getId());
-                    if (likedNotesAdapter.getItemCount() == 0) {
+                    int idx = removeRegionItem(regionItem.getNoteId());
+                    if (idx == -1) return;
+                    likedCardsAdapter.notifyItemRemoved(idx);
+                    if (likedRegionItems.isEmpty()) {
                         rvMyNotes.setVisibility(View.GONE);
                         tvEmpty.setText("暂无点赞");
                         tvEmpty.setVisibility(View.VISIBLE);
                     }
                     // 让首页等列表绑定时能拿到最新计数
-                    likedStore.toggle(userStore.getUid(), note.getId(), false);
+                    likedStore.toggle(userStore.getUid(), regionItem.getNoteId(), false);
                 } else {
-                    likedStore.toggle(userStore.getUid(), note.getId(), true);
+                    likedStore.toggle(userStore.getUid(), regionItem.getNoteId(), true);
                     loadLikedNotes();
                 }
             }
@@ -393,7 +406,24 @@ public class ProfileActivity extends AppCompatActivity {
                 Toast.makeText(ProfileActivity.this, "取消点赞失败: " + throwable.getMessage(), Toast.LENGTH_SHORT).show();
             }
         };
-        noteRepository.toggleLike(note.toRegionItem(), callback);
+        noteRepository.toggleLike(regionItem, callback);
+    }
+
+    private int removeRegionItem(String noteId) {
+        for (int i = 0; i < likedRegionItems.size(); i++) {
+            if (noteId.equals(likedRegionItems.get(i).getNoteId())) {
+                likedRegionItems.remove(i);
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void openNoteDetail(RegionItem item) {
+        if (item == null) return;
+        Intent intent = new Intent(this, NoteDetailActivity.class);
+        intent.putExtra(NoteDetailActivity.EXTRA_NOTE_DATA, item);
+        startActivity(intent);
     }
 
     private void initAvatarPicker() {

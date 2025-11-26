@@ -23,17 +23,23 @@ public class MyNotesAdapter extends RecyclerView.Adapter<MyNotesAdapter.NoteVH> 
         void onUnlike(MapNote note);
     }
 
+    public interface OnItemClickListener {
+        void onClick(MapNote note);
+    }
+
     private final List<MapNote> data = new ArrayList<>();
     private final boolean showUnlike;
     private final OnUnlikeListener onUnlikeListener;
+    private final OnItemClickListener onItemClickListener;
 
     public MyNotesAdapter() {
-        this(false, null);
+        this(false, null, null);
     }
 
-    public MyNotesAdapter(boolean showUnlike, OnUnlikeListener listener) {
+    public MyNotesAdapter(boolean showUnlike, OnUnlikeListener listener, OnItemClickListener clickListener) {
         this.showUnlike = showUnlike;
         this.onUnlikeListener = listener;
+        this.onItemClickListener = clickListener;
     }
 
     public void submit(List<MapNote> notes) {
@@ -85,6 +91,12 @@ public class MyNotesAdapter extends RecyclerView.Adapter<MyNotesAdapter.NoteVH> 
             holder.btnUnlike.setVisibility(View.GONE);
             holder.btnUnlike.setOnClickListener(null);
         }
+
+        holder.itemView.setOnClickListener(v -> {
+            if (onItemClickListener != null) {
+                onItemClickListener.onClick(note);
+            }
+        });
     }
 
     @Override
