@@ -75,6 +75,12 @@
             android:exported="false" />
 
         <activity
+            android:name=".ui.SelectLocationActivity"
+            android:exported="false"
+            android:label="选择地点"
+            android:parentActivityName=".ui.AddNoteActivity" />
+
+        <activity
             android:name=".ui.ClusterDetailActivity"
             android:label="附近笔记列表"
             android:exported="false"

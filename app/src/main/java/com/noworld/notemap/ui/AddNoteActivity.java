@@ -25,6 +25,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
 
 import com.amap.api.services.core.LatLonPoint;
 import com.amap.api.services.geocoder.GeocodeResult;
@@ -59,6 +61,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
     private ActivityResultLauncher<Intent> pickImageLauncher;
     private ActivityResultLauncher<String> mediaPermissionLauncher;
+    private ActivityResultLauncher<Intent> selectLocationLauncher;
     private final List<Uri> selectedImageUris = new ArrayList<>();
     private ImagePreviewAdapter imagePreviewAdapter;
     private double currentLat = 0;
@@ -118,6 +121,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         // 4. 初始化图片选择器
         initImagePicker();
         initMediaPermission();
+        initLocationPicker();
 
         // 5. [新增] 初始化地理编码查询器
         try {
@@ -169,6 +173,24 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                 });
     }
 
+    private void initLocationPicker() {
+        selectLocationLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        double lat = result.getData().getDoubleExtra(SelectLocationActivity.EXTRA_LAT, 0);
+                        double lng = result.getData().getDoubleExtra(SelectLocationActivity.EXTRA_LNG, 0);
+                        String address = result.getData().getStringExtra(SelectLocationActivity.EXTRA_ADDRESS);
+                        if (lat != 0 && lng != 0) {
+                            currentLat = lat;
+                            currentLng = lng;
+                            tvLocationValue.setText(address != null ? address : "手动选点");
+                        }
+                    }
+                }
+        );
+    }
+
     private void setupClickListeners() {
         // 点击方框 (+) 添加图片
         ivAddImage.setOnClickListener(v -> {
@@ -182,16 +204,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
         // [修改] 点击 "拍摄地点" 行
         rowLocation.setOnClickListener(v -> {
-            if (currentLat != 0 && currentLng != 0) {
-                // 开始逆地理编码查询
-                tvLocationValue.setText("正在获取地址...");
-                // 第一个参数表示一个LatLonPoint对象，第二参数表示范围多少米，第三个参数表示是火星坐标系还是GPS原生坐标系
-                LatLonPoint latLonPoint = new LatLonPoint(currentLat, currentLng);
-                RegeocodeQuery query = new RegeocodeQuery(latLonPoint, 200, GeocodeSearch.AMAP);
-                geocodeSearch.getFromLocationAsyn(query);
-            } else {
-                Toast.makeText(this, "无法获取当前位置, 请返回地图重试", Toast.LENGTH_SHORT).show();
-            }
+            showLocationChoiceDialog();
         });
 
         // 点击 "发布" 按钮
@@ -262,6 +275,30 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             tvNoteTypeValue.setText(selectedType);
         });
         builder.create().show();
+    }
+
+    private void showLocationChoiceDialog() {
+        String[] options = {"使用当前位置", "手动选点"};
+        new AlertDialog.Builder(this)
+                .setTitle("选择拍摄地点")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        if (currentLat != 0 && currentLng != 0) {
+                            tvLocationValue.setText("正在获取地址...");
+                            LatLonPoint latLonPoint = new LatLonPoint(currentLat, currentLng);
+                            RegeocodeQuery query = new RegeocodeQuery(latLonPoint, 200, GeocodeSearch.AMAP);
+                            geocodeSearch.getFromLocationAsyn(query);
+                        } else {
+                            Toast.makeText(this, "无法获取当前位置, 请返回地图重试", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        Intent intent = new Intent(this, SelectLocationActivity.class);
+                        intent.putExtra("CURRENT_LAT", currentLat);
+                        intent.putExtra("CURRENT_LNG", currentLng);
+                        selectLocationLauncher.launch(intent);
+                    }
+                })
+                .show();
     }
 
     /**
