@@ -69,8 +69,10 @@ import com.noworld.notemap.data.AliNoteRepository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 // [重要] 确保类声明实现了所有接口
@@ -127,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             "种草", "攻略", "测评", "分享", "合集", "教程", "开箱", "Vlog", "探店"
     };
     private String currentKeyword = "";
-    private String currentTypeFilter = null;
+    private final Set<String> currentTypeFilters = new HashSet<>();
     private boolean isMapLoaded = false;
 
     // 数据层
@@ -506,8 +508,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                 if (item == null) {
                     continue;
                 }
-                if (!TextUtils.isEmpty(currentTypeFilter)) {
-                    if (TextUtils.isEmpty(item.getNoteType()) || !currentTypeFilter.equalsIgnoreCase(item.getNoteType())) {
+                if (!currentTypeFilters.isEmpty()) {
+                    if (TextUtils.isEmpty(item.getNoteType()) || !currentTypeFilters.contains(item.getNoteType())) {
                         continue;
                     }
                 }
@@ -557,25 +559,39 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             types.add(t);
         }
         CharSequence[] items = types.toArray(new CharSequence[0]);
-        int checkedItem = 0;
-        if (currentTypeFilter != null) {
-            for (int i = 0; i < types.size(); i++) {
-                if (types.get(i).equalsIgnoreCase(currentTypeFilter)) {
-                    checkedItem = i;
-                    break;
-                }
+        boolean[] checked = new boolean[items.length];
+        for (int i = 1; i < items.length; i++) {
+            if (currentTypeFilters.contains(items[i].toString())) {
+                checked[i] = true;
             }
         }
         new AlertDialog.Builder(this)
                 .setTitle("按类型筛选")
-                .setSingleChoiceItems(items, checkedItem, (dialog, which) -> {
-                    String selected = types.get(which);
-                    currentTypeFilter = "全部".equals(selected) ? null : selected;
+                .setMultiChoiceItems(items, checked, (dialog, which, isChecked) -> {
+                    if (which == 0) { // 全部
+                        for (int i = 1; i < checked.length; i++) {
+                            checked[i] = false;
+                            ((AlertDialog) dialog).getListView().setItemChecked(i, false);
+                        }
+                        currentTypeFilters.clear();
+                    } else {
+                        String t = items[which].toString();
+                        if (isChecked) {
+                            currentTypeFilters.add(t);
+                        } else {
+                            currentTypeFilters.remove(t);
+                        }
+                    }
+                })
+                .setPositiveButton("确定", (dialog, which) -> {
+                    if (currentTypeFilters.isEmpty()) {
+                        // 如果用户只勾选了“全部”或全取消，则视为不过滤
+                        currentTypeFilters.clear();
+                    }
                     applyFilters();
                     if (!TextUtils.isEmpty(currentKeyword)) {
                         showSearchSheet();
                     }
-                    dialog.dismiss();
                 })
                 .setNegativeButton("取消", null)
                 .show();
