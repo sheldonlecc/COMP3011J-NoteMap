@@ -16,7 +16,8 @@
             android:layout_height="72dp"
             android:adjustViewBounds="true"
             android:background="@drawable/bg_marker_photo"
-            android:scaleType="centerCrop" />
+            android:scaleType="centerCrop"
+            android:clipToOutline="true" />
 
         <TextView
             android:id="@+id/tv_marker_type"
@@ -34,4 +35,3 @@
     </LinearLayout>
 
 </FrameLayout>
-

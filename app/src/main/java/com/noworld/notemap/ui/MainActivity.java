@@ -11,6 +11,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Rect;
+import android.graphics.Path;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -749,7 +750,14 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         if (photo != null) {
             Rect src = new Rect(0, 0, photo.getWidth(), photo.getHeight());
             Rect dst = new Rect(0, 0, size, size);
-            canvas.drawBitmap(photo, src, dst, null);
+            Paint imgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            imgPaint.setAntiAlias(true);
+            canvas.save();
+            Path clipPath = new Path();
+            clipPath.addRoundRect(new RectF(dst), radius, radius, Path.Direction.CW);
+            canvas.clipPath(clipPath);
+            canvas.drawBitmap(photo, src, dst, imgPaint);
+            canvas.restore();
         }
 
         // 叠加数量蓝色气泡
