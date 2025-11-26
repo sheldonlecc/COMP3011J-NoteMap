@@ -68,8 +68,8 @@
 
         <ImageView
             android:id="@+id/iv_like_icon"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:layout_marginEnd="4dp"
             app:srcCompat="@drawable/ic_like" app:layout_constraintEnd_toStartOf="@id/tv_like_count"
             app:layout_constraintTop_toTopOf="@id/iv_author_avatar"

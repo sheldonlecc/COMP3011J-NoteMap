@@ -5,14 +5,10 @@ import androidx.annotation.Nullable;
 
 import com.amap.api.maps.model.LatLng;
 import com.amap.apis.cluster.demo.RegionItem;
-import com.google.firebase.Timestamp;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.GeoPoint;
+import com.noworld.notemap.data.dto.MapNoteResponse;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Firestore 中 notes 文档的数据模型。
@@ -43,7 +39,7 @@ public class MapNote {
     private String authorName;
     private String authorAvatarUrl;
     private int likeCount;
-    private Timestamp timestamp;
+    private long timestamp;
 
     public MapNote() {
     }
@@ -64,48 +60,21 @@ public class MapNote {
         this.likeCount = 0;
     }
 
-    public static MapNote fromSnapshot(@NonNull DocumentSnapshot snapshot) {
+    public static MapNote fromResponse(@NonNull MapNoteResponse response) {
         MapNote note = new MapNote();
-        note.id = snapshot.getId();
-        note.title = snapshot.getString(FIELD_TITLE);
-        note.description = snapshot.getString(FIELD_DESCRIPTION);
-        note.type = snapshot.getString(FIELD_TYPE);
-        note.locationName = snapshot.getString(FIELD_LOCATION_NAME);
-        note.authorId = snapshot.getString(FIELD_AUTHOR_ID);
-        note.authorName = snapshot.getString(FIELD_AUTHOR_NAME);
-        note.authorAvatarUrl = snapshot.getString(FIELD_AUTHOR_AVATAR);
-        Long like = snapshot.getLong(FIELD_LIKE_COUNT);
-        note.likeCount = like != null ? like.intValue() : 0;
-        note.timestamp = snapshot.getTimestamp(FIELD_TIMESTAMP);
-
-        GeoPoint geoPoint = snapshot.getGeoPoint(FIELD_GEO_POINT);
-        if (geoPoint != null) {
-            note.latitude = geoPoint.getLatitude();
-            note.longitude = geoPoint.getLongitude();
-        }
-
-        List<String> urls = (List<String>) snapshot.get(FIELD_IMAGE_URLS);
-        note.imageUrls = urls != null ? urls : new ArrayList<>();
+        note.id = response.id;
+        note.title = response.title;
+        note.description = response.description;
+        note.type = response.type;
+        note.latitude = response.latitude;
+        note.longitude = response.longitude;
+        note.locationName = response.locationName;
+        note.imageUrls = response.imageUrls != null ? response.imageUrls : new ArrayList<>();
+        note.authorId = response.authorId;
+        note.authorName = response.authorName;
+        note.authorAvatarUrl = response.authorAvatarUrl;
+        note.likeCount = response.likeCount;
         return note;
-    }
-
-    public Map<String, Object> toFirestoreMap() {
-        if (imageUrls == null) {
-            imageUrls = new ArrayList<>();
-        }
-        Map<String, Object> map = new HashMap<>();
-        map.put(FIELD_TITLE, title);
-        map.put(FIELD_DESCRIPTION, description);
-        map.put(FIELD_TYPE, type);
-        map.put(FIELD_LOCATION_NAME, locationName);
-        map.put(FIELD_AUTHOR_ID, authorId);
-        map.put(FIELD_AUTHOR_NAME, authorName);
-        map.put(FIELD_AUTHOR_AVATAR, authorAvatarUrl);
-        map.put(FIELD_LIKE_COUNT, likeCount);
-        map.put(FIELD_GEO_POINT, new GeoPoint(latitude, longitude));
-        map.put(FIELD_IMAGE_URLS, imageUrls);
-        map.put(FIELD_TIMESTAMP, com.google.firebase.firestore.FieldValue.serverTimestamp());
-        return map;
     }
 
     public void setId(String id) {
@@ -176,5 +145,16 @@ public class MapNote {
     public String getAuthorAvatarUrl() {
         return authorAvatarUrl;
     }
-}
 
+    public String getAuthorId() {
+        return authorId;
+    }
+
+    public int getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(int likeCount) {
+        this.likeCount = Math.max(0, likeCount);
+    }
+}

@@ -11,8 +11,8 @@ android {
         applicationId "com.noworld.notemap" // [修改] 从 com.noworld.findmycar 改成 com.noworld.notemap
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -80,13 +80,9 @@ dependencies {
     implementation libs.activity
     implementation libs.constraintlayout
     implementation libs.play.services.maps
-    implementation platform(libs.firebase.bom)
-    implementation libs.firebase.firestore
-    implementation libs.firebase.storage
-    implementation libs.firebase.analytics
-    implementation libs.firebase.auth
-    // gRPC okhttp transport to avoid Play services dependency on some emulators
-    implementation "io.grpc:grpc-okhttp:1.32.2"
+    implementation "com.squareup.retrofit2:retrofit:2.9.0"
+    implementation "com.squareup.retrofit2:converter-gson:2.9.0"
+    implementation "com.squareup.okhttp3:logging-interceptor:4.12.0"
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

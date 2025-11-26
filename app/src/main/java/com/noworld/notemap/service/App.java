@@ -6,8 +6,6 @@ import android.content.Context;
 import com.amap.api.location.AMapLocationClient;
 import com.amap.api.maps.MapsInitializer;
 import com.amap.api.services.core.ServiceSettings;
-import com.google.firebase.FirebaseApp;
-
 public class App extends Application {
 
     @Override
@@ -23,8 +21,5 @@ public class App extends Application {
         // 搜索隐私政策同意
         ServiceSettings.updatePrivacyShow(mContext, true, true);
         ServiceSettings.updatePrivacyAgree(mContext, true);
-
-        // Firebase 初始化
-        FirebaseApp.initializeApp(this);
     }
 }

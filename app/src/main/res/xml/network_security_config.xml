@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- 允许明文访问你的后端 IP/域名 -->
+        <domain includeSubdomains="true">47.94.183.236</domain>
+    </domain-config>
+
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- 允许阿里云 OSS 上传使用明文连接 -->
+        <domain includeSubdomains="true">notemap-prod-oss.oss-cn-beijing.aliyuncs.com</domain>
+    </domain-config>
+</network-security-config>

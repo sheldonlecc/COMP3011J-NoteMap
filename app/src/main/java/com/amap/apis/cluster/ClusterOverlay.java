@@ -13,6 +13,8 @@ import android.util.LruCache;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.widget.TextView;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.Typeface;
 
 import com.amap.api.maps.AMap;
 import com.amap.api.maps.AMapUtils;
@@ -351,14 +353,45 @@ public class ClusterOverlay implements AMap.OnCameraChangeListener,
             }
         }
 
+        // 默认聚合样式：红色圆背景 + 白色数量
         TextView textView = new TextView(mContext);
-        if (clusterCount > 1) {
-            String tile = String.valueOf(clusterCount);
-            textView.setText(tile);
-        }
         textView.setGravity(Gravity.CENTER);
-        textView.setTextColor(Color.BLACK);
-        textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        textView.setTextColor(Color.WHITE);
+        textView.setTypeface(Typeface.DEFAULT_BOLD);
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        textView.setText(String.valueOf(clusterCount));
+
+        int sizeDp;
+        if (clusterCount < 5) {
+            sizeDp = 48;
+        } else if (clusterCount < 20) {
+            sizeDp = 56;
+        } else if (clusterCount < 50) {
+            sizeDp = 64;
+        } else {
+            sizeDp = 72;
+        }
+        int sizePx = dp2px(mContext, sizeDp);
+        textView.setWidth(sizePx);
+        textView.setHeight(sizePx);
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.OVAL);
+        // 橙色系，接近原图效果
+        int color;
+        if (clusterCount < 5) {
+            color = Color.parseColor("#FF8A33"); // 浅橙
+        } else if (clusterCount < 20) {
+            color = Color.parseColor("#F36E21"); // 中橙
+        } else if (clusterCount < 50) {
+            color = Color.parseColor("#E65A0F"); // 深橙
+        } else {
+            color = Color.parseColor("#CC4A00"); // 更深
+        }
+        bg.setColor(color);
+        bg.setStroke(dp2px(mContext, 2), Color.WHITE);
+        textView.setBackground(bg);
+
         BitmapDescriptor defaultDescriptor = BitmapDescriptorFactory.fromView(textView);
         mLruCache.put(cacheKey, defaultDescriptor);
         return defaultDescriptor;
@@ -370,6 +403,10 @@ public class ClusterOverlay implements AMap.OnCameraChangeListener,
             return "single_" + latLng.latitude + "_" + latLng.longitude;
         }
         return "cluster_" + clusterCount;
+    }
+
+    private int dp2px(Context ctx, float dp) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, ctx.getResources().getDisplayMetrics());
     }
 
     /**

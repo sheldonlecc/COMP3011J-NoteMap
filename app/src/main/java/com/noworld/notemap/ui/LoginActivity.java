@@ -11,22 +11,15 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.SetOptions;
+import com.noworld.notemap.data.AuthRepository;
 import com.noworld.notemap.R;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class LoginActivity extends AppCompatActivity {
 
     private EditText etEmail, etPassword;
     private Button btnLogin;
     private TextView tvRegister;
-    private FirebaseAuth auth;
-    private FirebaseFirestore firestore;
+    private AuthRepository authRepository;
     private boolean isLoading = false;
 
     @Override
@@ -34,8 +27,7 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        auth = FirebaseAuth.getInstance();
-        firestore = FirebaseFirestore.getInstance();
+        authRepository = new AuthRepository(this);
         initView();
         initEvent();
     }
@@ -70,39 +62,22 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         setLoading(true);
-        auth.signInWithEmailAndPassword(email, password)
-                .addOnSuccessListener(authResult -> syncUserProfile(authResult.getUser()))
-                .addOnFailureListener(e -> {
-                    setLoading(false);
-                    Toast.makeText(LoginActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-    }
+        authRepository.login(email, password, new AuthRepository.LoginCallback() {
+            @Override
+            public void onSuccess(com.noworld.notemap.data.dto.LoginResponse.UserDto user) {
+                Toast.makeText(LoginActivity.this, "登录成功", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                finish();
+            }
 
-    private void syncUserProfile(FirebaseUser user) {
-        if (user == null) {
-            setLoading(false);
-            Toast.makeText(this, "用户信息获取失败，请重试", Toast.LENGTH_LONG).show();
-            return;
-        }
-        Map<String, Object> profile = new HashMap<>();
-        profile.put("uid", user.getUid());
-        profile.put("email", user.getEmail());
-        profile.put("username", !TextUtils.isEmpty(user.getDisplayName()) ? user.getDisplayName() : "地图用户");
-        profile.put("avatarUrl", user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : null);
-        firestore.collection("users")
-                .document(user.getUid())
-                .set(profile, SetOptions.merge())
-                .addOnSuccessListener(unused -> {
-                    Toast.makeText(LoginActivity.this, "登录成功", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                    startActivity(intent);
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    setLoading(false);
-                    Toast.makeText(LoginActivity.this, "登录成功，但同步用户资料失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+            @Override
+            public void onError(@NonNull Throwable throwable) {
+                setLoading(false);
+                Toast.makeText(LoginActivity.this, "登录失败: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void setLoading(boolean loading) {

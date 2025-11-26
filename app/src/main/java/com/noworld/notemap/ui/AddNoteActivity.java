@@ -28,11 +28,11 @@ import com.amap.api.services.geocoder.GeocodeSearch;
 import com.amap.api.services.geocoder.RegeocodeQuery;
 import com.amap.api.services.geocoder.RegeocodeResult;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.noworld.notemap.R;
-import com.noworld.notemap.data.FirebaseNoteRepository;
+import com.noworld.notemap.data.AliNoteRepository;
 import com.noworld.notemap.data.MapNote;
+import com.noworld.notemap.data.TokenStore;
+import com.noworld.notemap.data.UserStore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,8 +63,9 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             "种草", "攻略", "测评", "分享", "合集", "教程", "开箱", "Vlog", "探店"
     };
 
-    private FirebaseNoteRepository noteRepository;
-    private FirebaseAuth auth;
+    private AliNoteRepository noteRepository;
+    private TokenStore tokenStore;
+    private UserStore userStore;
     private boolean isPublishing = false;
 
     @Override
@@ -90,8 +91,9 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
 
-        noteRepository = FirebaseNoteRepository.getInstance();
-        auth = FirebaseAuth.getInstance();
+        noteRepository = AliNoteRepository.getInstance(this);
+        tokenStore = TokenStore.getInstance(this);
+        userStore = UserStore.getInstance(this);
 
         // 3. 获取从 MainActivity 传来的当前位置
         currentLat = getIntent().getDoubleExtra("CURRENT_LAT", 0);
@@ -221,7 +223,6 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         String story = etStory.getText() != null ? etStory.getText().toString().trim() : "";
         String noteType = tvNoteTypeValue.getText() != null ? tvNoteTypeValue.getText().toString().trim() : "";
         String locationName = tvLocationValue.getText() != null ? tvLocationValue.getText().toString().trim() : "";
-        FirebaseUser user = auth.getCurrentUser();
 
         if (TextUtils.isEmpty(title)) {
             Toast.makeText(this, "请输入标题", Toast.LENGTH_SHORT).show();
@@ -243,7 +244,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             Toast.makeText(this, "无法获取定位，请返回地图重试", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (user == null) {
+        if (TextUtils.isEmpty(tokenStore.getToken())) {
             Toast.makeText(this, "请先登录再发布笔记", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, LoginActivity.class));
             return;
@@ -251,37 +252,53 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
         final String locationNameFinal = TextUtils.isEmpty(locationName) ? "未知地点" : locationName;
         setPublishing(true);
-        String noteId = noteRepository.generateNoteId();
-        noteRepository.uploadImage(selectedImageUri)
-                .continueWithTask(task -> {
-                    String imageUrl = task.getResult();
-                    if (TextUtils.isEmpty(imageUrl)) {
-                        throw new IllegalStateException("图片上传失败");
+        noteRepository.uploadImage(selectedImageUri, new AliNoteRepository.UploadCallback() {
+            @Override
+            public void onSuccess(String fileUrl) {
+                List<String> images = new ArrayList<>();
+                images.add(fileUrl);
+                String authorId = userStore.ensureUid(userStore.getUid());
+                String authorName = TextUtils.isEmpty(userStore.getUsername()) ? "地图用户" : userStore.getUsername();
+                String avatarUrl = userStore.getAvatarUrl();
+                MapNote note = new MapNote(
+                        title,
+                        story,
+                        noteType,
+                        currentLat,
+                        currentLng,
+                        locationNameFinal,
+                        images,
+                        authorId,
+                        authorName,
+                        avatarUrl
+                );
+                noteRepository.publishNote(note, new AliNoteRepository.PublishCallback() {
+                    @Override
+                    public void onSuccess() {
+                        runOnUiThread(() -> {
+                            Toast.makeText(AddNoteActivity.this, "发布成功！", Toast.LENGTH_SHORT).show();
+                            finish();
+                        });
                     }
-                    List<String> images = new ArrayList<>();
-                    images.add(imageUrl);
-                    MapNote note = new MapNote(
-                            title,
-                            story,
-                            noteType,
-                            currentLat,
-                            currentLng,
-                            locationNameFinal,
-                            images,
-                            user.getUid(),
-                            !TextUtils.isEmpty(user.getDisplayName()) ? user.getDisplayName() : "地图用户",
-                            user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : null
-                    );
-                    return noteRepository.publishNote(note, noteId);
-                })
-                .addOnSuccessListener(unused -> {
-                    Toast.makeText(this, "发布成功！", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "发布失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
+
+                    @Override
+                    public void onError(@NonNull Throwable throwable) {
+                        runOnUiThread(() -> {
+                            Toast.makeText(AddNoteActivity.this, "发布失败：" + throwable.getMessage(), Toast.LENGTH_LONG).show();
+                            setPublishing(false);
+                        });
+                    }
+                });
+            }
+
+            @Override
+            public void onError(@NonNull Throwable throwable) {
+                runOnUiThread(() -> {
+                    Toast.makeText(AddNoteActivity.this, "图片上传失败：" + throwable.getMessage(), Toast.LENGTH_LONG).show();
                     setPublishing(false);
                 });
+            }
+        });
     }
 
     private void setPublishing(boolean publishing) {

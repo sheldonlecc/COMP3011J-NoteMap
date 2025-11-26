@@ -132,24 +132,36 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tab_layout">
 
-        <!-- 占位符: 作品列表 (默认显示) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_my_notes"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="visible" />
+
         <TextView
-            android:id="@+id/tv_works_list_placeholder"
+            android:id="@+id/tv_empty"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="“作品”列表 (UI占位符)"
-            android:textSize="18sp"
-            android:visibility="visible" />
+            android:text="暂无作品"
+            android:textSize="16sp"
+            android:visibility="gone" />
 
-        <!-- 占位符: 点赞列表 (默认隐藏) -->
         <TextView
             android:id="@+id/tv_likes_list_placeholder"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="“点赞”列表 (UI占位符)"
-            android:textSize="18sp"
+            android:text="点赞列表敬请期待"
+            android:textSize="16sp"
+            android:visibility="gone" />
+
+        <ProgressBar
+            android:id="@+id/progress_loading"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:visibility="gone" />
 
     </FrameLayout>
@@ -157,4 +169,3 @@
     <!-- [已删除] 旧的退出登录按钮 -->
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-

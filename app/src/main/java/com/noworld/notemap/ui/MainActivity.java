@@ -10,6 +10,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -21,6 +22,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.view.ViewGroup;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -28,6 +30,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationClient;
@@ -58,9 +63,9 @@ import com.amap.api.services.geocoder.GeocodeSearch;
 import com.amap.api.services.geocoder.RegeocodeResult;
 import com.amap.api.services.geocoder.GeocodeQuery;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.firebase.firestore.ListenerRegistration;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.noworld.notemap.R;
-import com.noworld.notemap.data.FirebaseNoteRepository;
+import com.noworld.notemap.data.AliNoteRepository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -103,13 +108,19 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private FloatingActionButton fab_add_note;
     private FloatingActionButton fab_user_profile;
     private SearchView searchView;
+    private View bottomSheetSearch;
+    private RecyclerView rvSearchResult;
+    private TextView tvSearchResultTitle;
+    private BottomSheetBehavior<View> searchSheetBehavior;
+    private List<RegionItem> searchSheetNotes = new ArrayList<>();
+    private NoteCardAdapter searchSheetAdapter;
 
     private androidx.appcompat.widget.Toolbar toolbar_main; // 添加这个变量
 
     // 点聚合相关
     private ClusterOverlay mClusterOverlay;
     private int clusterRadius = 100; // 聚合半径 (dp)
-    private final Map<Integer, BitmapDescriptor> clusterCircleCache = new HashMap<>();
+    private final Map<String, BitmapDescriptor> clusterCircleCache = new HashMap<>();
     private final LruCache<String, BitmapDescriptor> markerIconCache = new LruCache<>(120); // 自定义 Marker 缓存
     private final List<RegionItem> latestNotes = new ArrayList<>();
     private final List<RegionItem> displayedNotes = new ArrayList<>();
@@ -118,8 +129,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private boolean isMapLoaded = false;
 
     // 数据层
-    private FirebaseNoteRepository noteRepository;
-    private ListenerRegistration notesListener;
+    private AliNoteRepository noteRepository;
     private GeocodeSearch geocodeSearch;
     private Marker searchMarker;
 
@@ -134,7 +144,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        noteRepository = FirebaseNoteRepository.getInstance();
+        noteRepository = AliNoteRepository.getInstance(this);
         markerLayoutInflater = LayoutInflater.from(this);
         fallbackMarkerBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_car);
 
@@ -261,6 +271,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
             // [修改]
             myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER);
+            // 恢复默认锚点，避免偏移过大
+            myLocationStyle.anchor(0.5f, 0.5f);
 
             // 设置定位蓝点的样式
             aMap.setMyLocationStyle(myLocationStyle);
@@ -333,10 +345,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         super.onDestroy();
         // [新增] 销毁聚合图层
         clearClusterOverlay();
-        if (notesListener != null) {
-            notesListener.remove();
-            notesListener = null;
-        }
         markerIconCache.evictAll();
         clusterCircleCache.clear();
         mp_view.onDestroy();
@@ -407,15 +415,21 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         fab_my_location = findViewById(R.id.fab_my_location);
         fab_add_note = findViewById(R.id.fab_add_note);
         fab_user_profile = findViewById(R.id.fab_user_profile);
+        bottomSheetSearch = findViewById(R.id.bottom_sheet_search);
+        rvSearchResult = findViewById(R.id.rv_search_result);
+        tvSearchResultTitle = findViewById(R.id.tv_search_result_title);
 
         // [修改] 为新 FAB 按钮设置点击监听
         fab_my_location.setOnClickListener(this);
         fab_add_note.setOnClickListener(this);
         fab_user_profile.setOnClickListener(this);
 
+        setupSearchSheet();
+
         if (searchView != null) {
             searchView.setIconifiedByDefault(false);
             searchView.setSubmitButtonEnabled(true); // 显示右侧放大镜按钮
+            tweakSearchIconPosition();
             searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                 @Override
                 public boolean onQueryTextSubmit(String query) {
@@ -423,7 +437,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                     if (displayedNotes.isEmpty()) {
                         searchLocation(query);
                     } else {
-                        launchSearchResultIfNeeded();
+                        showSearchSheet();
                     }
                     searchView.clearFocus(); // 收起键盘，反馈搜索已触发
                     return true;
@@ -432,6 +446,11 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                 @Override
                 public boolean onQueryTextChange(String newText) {
                     applySearchQuery(newText);
+                    if (TextUtils.isEmpty(newText)) {
+                        hideSearchSheet();
+                    } else if (!displayedNotes.isEmpty()) {
+                        showSearchSheet();
+                    }
                     return true;
                 }
             });
@@ -452,18 +471,18 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     }
 
     private void subscribeNotes() {
-        if (noteRepository == null || notesListener != null) {
+        if (noteRepository == null) {
             return;
         }
-        notesListener = noteRepository.observeNotes(new FirebaseNoteRepository.NotesSnapshotListener() {
+        noteRepository.fetchNotes(null, null, null, null, new AliNoteRepository.NotesCallback() {
             @Override
-            public void onNotesChanged(List<RegionItem> notes) {
-                runOnUiThread(() -> updateNoteData(notes));
+            public void onSuccess(List<RegionItem> items) {
+                runOnUiThread(() -> updateNoteData(items));
             }
 
             @Override
-            public void onError(@NonNull Exception exception) {
-                Log.e(TAG, "同步笔记失败", exception);
+            public void onError(@NonNull Throwable throwable) {
+                Log.e(TAG, "同步笔记失败", throwable);
                 runOnUiThread(() -> showMsg("同步笔记失败"));
             }
         });
@@ -508,18 +527,20 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         }
         if (displayedNotes.isEmpty()) {
             clearClusterOverlay();
+            hideSearchSheet();
             return;
         }
         attachClusterOverlay();
+        if (!TextUtils.isEmpty(currentKeyword)) {
+            showSearchSheet();
+        }
     }
 
     private void launchSearchResultIfNeeded() {
         if (displayedNotes.isEmpty()) {
             return;
         }
-        Intent intent = new Intent(this, SearchResultActivity.class);
-        intent.putExtra(SearchResultActivity.EXTRA_SEARCH_NOTES, new ArrayList<>(displayedNotes));
-        startActivity(intent);
+        showSearchSheet();
     }
 
     private void searchLocation(String keyword) {
@@ -583,6 +604,44 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         mClusterOverlay.setOnClusterClickListener(this);
     }
 
+    private void showSearchSheet() {
+        if (displayedNotes.isEmpty() || TextUtils.isEmpty(currentKeyword)) {
+            hideSearchSheet();
+            return;
+        }
+        searchSheetNotes.clear();
+        searchSheetNotes.addAll(displayedNotes);
+        tvSearchResultTitle.setText("搜索结果 (" + displayedNotes.size() + ")");
+        searchSheetAdapter.notifyDataSetChanged();
+        int peek = (int) (getResources().getDisplayMetrics().heightPixels * 0.66f);
+        searchSheetBehavior.setPeekHeight(peek);
+        searchSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+    }
+
+    private void hideSearchSheet() {
+        if (searchSheetBehavior != null) {
+            searchSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+        }
+    }
+
+    private void tweakSearchIconPosition() {
+        try {
+            ImageView magIcon = searchView.findViewById(androidx.appcompat.R.id.search_mag_icon);
+            View searchPlate = searchView.findViewById(androidx.appcompat.R.id.search_plate);
+            if (searchPlate != null) {
+                searchPlate.setPadding(0, searchPlate.getPaddingTop(), searchPlate.getPaddingRight(), searchPlate.getPaddingBottom());
+            }
+            if (magIcon != null) {
+                ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) magIcon.getLayoutParams();
+                lp.setMarginStart(0);
+                lp.leftMargin = 0;
+                magIcon.setLayoutParams(lp);
+                magIcon.setPadding(0, magIcon.getPaddingTop(), magIcon.getPaddingRight(), magIcon.getPaddingBottom());
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     private void initGeocoder() {
         try {
             geocodeSearch = new GeocodeSearch(this);
@@ -590,6 +649,15 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         } catch (Exception e) {
             Log.e(TAG, "初始化地理编码失败", e);
         }
+    }
+
+    private void setupSearchSheet() {
+        searchSheetBehavior = BottomSheetBehavior.from(bottomSheetSearch);
+        searchSheetBehavior.setHideable(true);
+        searchSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+        rvSearchResult.setLayoutManager(new LinearLayoutManager(this));
+        searchSheetAdapter = new NoteCardAdapter(this, searchSheetNotes);
+        rvSearchResult.setAdapter(searchSheetAdapter);
     }
 
     private void clearClusterOverlay() {
@@ -618,7 +686,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                 }
             }
         }
-        return getClusterCircleDescriptor(clusterSize);
+        return getClusterPhotoDescriptor(cluster);
     }
 
 
@@ -644,22 +712,63 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         return (int) (dpValue * scale + 0.5f);
     }
 
-    private BitmapDescriptor getClusterCircleDescriptor(int clusterNum) {
-        BitmapDescriptor cached = clusterCircleCache.get(clusterNum);
-        if (cached != null) {
-            return cached;
+    private BitmapDescriptor getClusterPhotoDescriptor(Cluster cluster) {
+        int clusterNum = cluster.getClusterCount();
+        int zoomBucket = (int) Math.round(aMap != null ? aMap.getCameraPosition().zoom : 12f);
+        String cacheKey = clusterNum + "_" + zoomBucket;
+        BitmapDescriptor cached = clusterCircleCache.get(cacheKey);
+        if (cached != null) return cached;
+
+        // 取聚合里第一张图片作为背景
+        String photoUrl = null;
+        if (!cluster.getClusterItems().isEmpty()) {
+            ClusterItem item = cluster.getClusterItems().get(0);
+            if (item instanceof RegionItem) {
+                photoUrl = ((RegionItem) item).getPhotoUrl();
+            }
         }
-        int radius = dp2px(getApplicationContext(), 80);
-        int color;
-        if (clusterNum < 5) {
-            color = Color.argb(159, 210, 154, 6);
-        } else if (clusterNum < 10) {
-            color = Color.argb(199, 217, 114, 0);
-        } else {
-            color = Color.argb(235, 215, 66, 2);
+
+        float scale = getMarkerScale();
+        int baseSize = dp2px(getApplicationContext(), 64);
+        int size = Math.max(1, (int) (baseSize * scale));
+        Bitmap bg = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bg);
+
+        // 先绘制图片方形底（圆角矩形）
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(Color.parseColor("#333333"));
+        float radius = dp2px(getApplicationContext(), 12) * scale;
+        RectF rect = new RectF(0, 0, size, size);
+        canvas.drawRoundRect(rect, radius, radius, paint);
+
+        Bitmap photo = loadBitmapFromUrl(photoUrl);
+        if (photo != null) {
+            Rect src = new Rect(0, 0, photo.getWidth(), photo.getHeight());
+            Rect dst = new Rect(0, 0, size, size);
+            canvas.drawBitmap(photo, src, dst, null);
         }
-        BitmapDescriptor descriptor = BitmapDescriptorFactory.fromBitmap(drawCircle(radius, color));
-        clusterCircleCache.put(clusterNum, descriptor);
+
+        // 叠加数量蓝色气泡
+        int badgeRadius = Math.max(8, (int) (dp2px(getApplicationContext(), 12) * scale));
+        int badgeCenterX = size - badgeRadius;
+        int badgeCenterY = badgeRadius;
+        Paint badgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        badgePaint.setColor(Color.parseColor("#1E88E5"));
+        canvas.drawCircle(badgeCenterX, badgeCenterY, badgeRadius, badgePaint);
+
+        // 白色数字
+        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextSize(Math.max(10, dp2px(getApplicationContext(), 12) * scale));
+        textPaint.setFakeBoldText(true);
+        String text = String.valueOf(clusterNum);
+        float textWidth = textPaint.measureText(text);
+        Paint.FontMetrics fm = textPaint.getFontMetrics();
+        float baseline = badgeCenterY + (fm.descent - fm.ascent) / 2f - fm.descent;
+        canvas.drawText(text, badgeCenterX - textWidth / 2f, baseline, textPaint);
+
+        BitmapDescriptor descriptor = BitmapDescriptorFactory.fromBitmap(bg);
+        clusterCircleCache.put(cacheKey, descriptor);
         return descriptor;
     }
 
@@ -668,6 +777,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         if (rCode != 1000 || geocodeResult == null || geocodeResult.getGeocodeAddressList() == null
                 || geocodeResult.getGeocodeAddressList().isEmpty()) {
             showMsg("未找到该地点");
+            hideSearchSheet();
             return;
         }
         LatLonPoint point = geocodeResult.getGeocodeAddressList().get(0).getLatLonPoint();
@@ -684,6 +794,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                 .title("搜索地点")
                 .snippet(geocodeResult.getGeocodeQuery().getLocationName()));
         aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+        showSearchSheet();
     }
 
     @Override
@@ -712,7 +823,14 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             imageView.setImageBitmap(fallbackMarkerBitmap);
         }
         typeView.setText(!TextUtils.isEmpty(item.getNoteType()) ? item.getNoteType() : "推荐");
-        BitmapDescriptor descriptor = BitmapDescriptorFactory.fromBitmap(createBitmapFromView(markerView));
+        Bitmap markerBitmap = createBitmapFromView(markerView);
+        float scale = getMarkerScale();
+        if (scale != 1f && markerBitmap != null) {
+            int w = Math.max(1, (int) (markerBitmap.getWidth() * scale));
+            int h = Math.max(1, (int) (markerBitmap.getHeight() * scale));
+            markerBitmap = Bitmap.createScaledBitmap(markerBitmap, w, h, true);
+        }
+        BitmapDescriptor descriptor = BitmapDescriptorFactory.fromBitmap(markerBitmap);
         if (!TextUtils.isEmpty(cacheKey)) {
             markerIconCache.put(cacheKey, descriptor);
         }
@@ -729,6 +847,15 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         Canvas canvas = new Canvas(bitmap);
         view.draw(canvas);
         return bitmap;
+    }
+
+    private float getMarkerScale() {
+        float zoom = aMap != null && aMap.getCameraPosition() != null
+                ? aMap.getCameraPosition().zoom : 12f;
+        float factor = (zoom - 10f) / 8f; // zoom 10->0, 18->1
+        if (factor < 0f) factor = 0f;
+        if (factor > 1f) factor = 1f;
+        return 0.7f + factor * 0.45f; // scale 0.7 - 1.15，略放大
     }
 
     private Bitmap loadBitmapFromUrl(String url) {
