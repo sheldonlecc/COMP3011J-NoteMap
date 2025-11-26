@@ -77,7 +77,6 @@ import java.util.concurrent.TimeUnit;
 public class MainActivity extends AppCompatActivity implements AMapLocationListener, LocationSource, View.OnClickListener, ClusterRender, ClusterClickListener, GeocodeSearch.OnGeocodeSearchListener {
 
     private static final String TAG = "MainActivity";
-    private static final int MENU_FILTER_TYPE = 1001;
 
     // 请求权限意图
     private ActivityResultLauncher<String> requestPermission;
@@ -124,6 +123,9 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private final LruCache<String, BitmapDescriptor> markerIconCache = new LruCache<>(120); // 自定义 Marker 缓存
     private final List<RegionItem> latestNotes = new ArrayList<>();
     private final List<RegionItem> displayedNotes = new ArrayList<>();
+    private static final String[] ALL_NOTE_TYPES = new String[]{
+            "种草", "攻略", "测评", "分享", "合集", "教程", "开箱", "Vlog", "探店"
+    };
     private String currentKeyword = "";
     private String currentTypeFilter = null;
     private boolean isMapLoaded = false;
@@ -188,7 +190,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         menu.add(Menu.NONE, 2, 2, "夜景视图");
         menu.add(Menu.NONE, 3, 3, "卫星视图");
         menu.add(Menu.NONE, 4, 4, "导航视图");
-        menu.add(Menu.NONE, MENU_FILTER_TYPE, 5, "筛选类型");
         return true;
     }
 
@@ -213,9 +214,6 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             case 4:
                 aMap.setMapType(AMap.MAP_TYPE_NAVI);
                 showMsg("切换为导航视图");
-                break;
-            case MENU_FILTER_TYPE:
-                showTypeFilterDialog();
                 break;
         }
         return true;
@@ -555,20 +553,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private void showTypeFilterDialog() {
         List<String> types = new ArrayList<>();
         types.add("全部");
-        for (RegionItem item : latestNotes) {
-            if (item == null || TextUtils.isEmpty(item.getNoteType())) {
-                continue;
-            }
-            boolean exists = false;
-            for (String t : types) {
-                if (item.getNoteType().equalsIgnoreCase(t)) {
-                    exists = true;
-                    break;
-                }
-            }
-            if (!exists) {
-                types.add(item.getNoteType());
-            }
+        for (String t : ALL_NOTE_TYPES) {
+            types.add(t);
         }
         CharSequence[] items = types.toArray(new CharSequence[0]);
         int checkedItem = 0;
@@ -586,6 +572,9 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                     String selected = types.get(which);
                     currentTypeFilter = "全部".equals(selected) ? null : selected;
                     applyFilters();
+                    if (!TextUtils.isEmpty(currentKeyword)) {
+                        showSearchSheet();
+                    }
                     dialog.dismiss();
                 })
                 .setNegativeButton("取消", null)
@@ -1017,11 +1006,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         } else if (view.getId() == R.id.fab_zoom_small) {
             aMap.animateCamera(CameraUpdateFactory.zoomOut());
         } else if (view.getId() == R.id.fab_location) {
-            if (latLng != null) {
-                aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18));
-            } else {
-                showMsg("正在定位...");
-            }
+            showTypeFilterDialog();
         }
 
         // [修改] 新的底部 FAB 按钮的点击逻辑 (ID 已修正)
