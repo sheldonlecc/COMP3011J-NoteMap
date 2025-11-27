@@ -47,6 +47,9 @@ import java.util.Set;
 
 // 引入高斯模糊库
 import jp.wasabeef.glide.transformations.BlurTransformation;
+import com.bumptech.glide.load.MultiTransformation;
+import com.bumptech.glide.load.resource.bitmap.CenterCrop;
+import android.graphics.Bitmap;
 
 /**
  * 个人主页 Activity
@@ -237,9 +240,17 @@ public class ProfileActivity extends AppCompatActivity {
     // 使用 Glide 加载并应用高斯模糊
     private void loadBlurBackground(Object model) {
         if (model == null) return;
+
+        // 定义组合变换：先居中裁切(CenterCrop)，再高斯模糊(Blur)
+        // 这样可以保证无论图片多长，都会先自动裁切成合适比例，再进行模糊
+        MultiTransformation<Bitmap> multi = new MultiTransformation<>(
+                new CenterCrop(),
+                new jp.wasabeef.glide.transformations.BlurTransformation(25, 3)
+        );
+
         Glide.with(this)
                 .load(model)
-                .apply(RequestOptions.bitmapTransform(new BlurTransformation(25, 3))) // 模糊半径25，采样3
+                .apply(RequestOptions.bitmapTransform(multi))
                 .into(ivProfileBackground);
     }
 
