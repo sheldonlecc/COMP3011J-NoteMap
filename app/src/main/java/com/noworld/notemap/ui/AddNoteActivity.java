@@ -25,8 +25,6 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 
 import com.amap.api.services.core.LatLonPoint;
 import com.amap.api.services.geocoder.GeocodeResult;
@@ -52,7 +50,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     private TextInputEditText etTitle;
     private TextInputEditText etStory;
     private ImageView ivAddImage;
-    private androidx.recyclerview.widget.RecyclerView rvImagePreview;
+    private RecyclerView rvImagePreview;
     private RelativeLayout rowNoteType;
     private TextView tvNoteTypeValue;
     private RelativeLayout rowLocation;
@@ -67,10 +65,8 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     private double currentLat = 0;
     private double currentLng = 0;
 
-    // [新增] 逆地理编码查询器
     private GeocodeSearch geocodeSearch;
 
-    // 笔记类型选项
     private final CharSequence[] noteTypes = {
             "种草", "攻略", "测评", "分享", "合集", "教程", "开箱", "Vlog", "探店"
     };
@@ -100,7 +96,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         // 2. 设置顶部工具栏
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true); // 显示返回箭头
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
 
@@ -108,22 +104,29 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         tokenStore = TokenStore.getInstance(this);
         userStore = UserStore.getInstance(this);
 
-        // 图片预览列表
+        // 3. 设置图片预览列表
         rvImagePreview.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        imagePreviewAdapter = new ImagePreviewAdapter(selectedImageUris);
+
+        // 【核心修改】这里传入了删除回调
+        imagePreviewAdapter = new ImagePreviewAdapter(selectedImageUris, position -> {
+            // 当点击删除按钮时触发
+            if (position >= 0 && position < selectedImageUris.size()) {
+                selectedImageUris.remove(position); // 从数据源移除
+                imagePreviewAdapter.notifyItemRemoved(position); // 通知列表刷新
+                imagePreviewAdapter.notifyItemRangeChanged(position, selectedImageUris.size()); // 刷新后续位置索引
+            }
+        });
         rvImagePreview.setAdapter(imagePreviewAdapter);
 
-        // 3. 获取从 MainActivity 传来的当前位置
+        // 4. 获取位置
         currentLat = getIntent().getDoubleExtra("CURRENT_LAT", 0);
         currentLng = getIntent().getDoubleExtra("CURRENT_LNG", 0);
 
-
-        // 4. 初始化图片选择器
+        // 5. 初始化功能
         initImagePicker();
         initMediaPermission();
         initLocationPicker();
 
-        // 5. [新增] 初始化地理编码查询器
         try {
             geocodeSearch = new GeocodeSearch(this);
             geocodeSearch.setOnGeocodeSearchListener(this);
@@ -131,7 +134,6 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             e.printStackTrace();
         }
 
-        // 6. 设置点击事件
         setupClickListeners();
     }
 
@@ -192,22 +194,9 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     }
 
     private void setupClickListeners() {
-        // 点击方框 (+) 添加图片
-        ivAddImage.setOnClickListener(v -> {
-            ensureMediaPermissionAndPickImage();
-        });
-
-        // 点击 "笔记类型" 行
-        rowNoteType.setOnClickListener(v -> {
-            showNoteTypePicker();
-        });
-
-        // [修改] 点击 "拍摄地点" 行
-        rowLocation.setOnClickListener(v -> {
-            showLocationChoiceDialog();
-        });
-
-        // 点击 "发布" 按钮
+        ivAddImage.setOnClickListener(v -> ensureMediaPermissionAndPickImage());
+        rowNoteType.setOnClickListener(v -> showNoteTypePicker());
+        rowLocation.setOnClickListener(v -> showLocationChoiceDialog());
         btnPublish.setOnClickListener(v -> {
             if (!isPublishing) {
                 publishNote();
@@ -263,14 +252,10 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         });
     }
 
-    /**
-     * 显示笔记类型的滑动选择栏 (用简单的对话框实现)
-     */
     private void showNoteTypePicker() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("选择笔记类型");
         builder.setItems(noteTypes, (dialog, which) -> {
-            // "which" 对应的就是选项的索引
             String selectedType = noteTypes[which].toString();
             tvNoteTypeValue.setText(selectedType);
         });
@@ -301,13 +286,10 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                 .show();
     }
 
-    /**
-     * 处理顶部工具栏的返回按钮点击
-     */
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            finish(); // 关闭当前 Activity，返回到 MainActivity
+            finish();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -404,14 +386,12 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         btnPublish.setText(publishing ? "发布中..." : "发布");
     }
 
-    // [新增] 逆地理编码的回调方法
     @Override
     public void onRegeocodeSearched(RegeocodeResult result, int rCode) {
-        if (rCode == 1000) { // 1000 代表成功
+        if (rCode == 1000) {
             if (result != null && result.getRegeocodeAddress() != null
                     && result.getRegeocodeAddress().getFormatAddress() != null) {
-
-                String address = result.getRegeocodeAddress().getFormatAddress(); // 这就是 "北京市朝阳区..."
+                String address = result.getRegeocodeAddress().getFormatAddress();
                 tvLocationValue.setText(address);
             } else {
                 tvLocationValue.setText("未找到地址");
@@ -421,23 +401,31 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         }
     }
 
-    // [新增] 地理编码的回调方法 (我们用不到，但必须实现)
     @Override
-    public void onGeocodeSearched(GeocodeResult geocodeResult, int i) {
-        // 正向地理编码（地址转坐标）的回调，我们用不到
-    }
+    public void onGeocodeSearched(GeocodeResult geocodeResult, int i) { }
 
+    // ===========================================
+    // 【核心修改】更新后的内部类适配器
+    // ===========================================
     private static class ImagePreviewAdapter extends RecyclerView.Adapter<ImagePreviewAdapter.ImageVH> {
 
         private final List<Uri> data;
+        // 增加删除回调
+        private final OnDeleteListener deleteListener;
 
-        ImagePreviewAdapter(List<Uri> data) {
+        interface OnDeleteListener {
+            void onDelete(int position);
+        }
+
+        ImagePreviewAdapter(List<Uri> data, OnDeleteListener listener) {
             this.data = data;
+            this.deleteListener = listener;
         }
 
         @NonNull
         @Override
         public ImageVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            // 使用修改后的布局 item_image_preview
             View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_image_preview, parent, false);
             return new ImageVH(view);
         }
@@ -449,6 +437,13 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                     .load(uri)
                     .centerCrop()
                     .into(holder.iv);
+
+            // 绑定删除按钮点击事件
+            holder.ivDelete.setOnClickListener(v -> {
+                if (deleteListener != null) {
+                    deleteListener.onDelete(holder.getAdapterPosition());
+                }
+            });
         }
 
         @Override
@@ -458,17 +453,19 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
         static class ImageVH extends RecyclerView.ViewHolder {
             ImageView iv;
+            ImageView ivDelete; // 新增删除按钮
 
             ImageVH(@NonNull View itemView) {
                 super(itemView);
-                iv = itemView.findViewById(R.id.iv_preview);
+                // 确保这里 ID 和 item_image_preview.xml 里一致
+                iv = itemView.findViewById(R.id.iv_image);
+                ivDelete = itemView.findViewById(R.id.iv_delete);
             }
         }
     }
 
     private interface UploadAllCallback {
         void onSuccess(List<String> imageUrls);
-
         void onError(@NonNull Throwable throwable);
     }
 }
