@@ -1,5 +1,3 @@
-// 位置: com/amap/apis/cluster/demo/RegionItem.java
-
 package com.amap.apis.cluster.demo;
 
 import com.amap.api.maps.model.LatLng;
@@ -9,9 +7,9 @@ import java.util.List;
 
 public class RegionItem implements ClusterItem, Serializable {
 
-    private static final long serialVersionUID = 20251109L; // 更新版本号
+    private static final long serialVersionUID = 20251109L;
 
-    // 1. 地图数据 (序列化修复)
+    // 1. 地图数据
     private transient LatLng mLatLng;
     private double mLatitude;
     private double mLongitude;
@@ -25,13 +23,16 @@ public class RegionItem implements ClusterItem, Serializable {
     private int likeCount;
     private boolean likedByCurrentUser;
 
-    // 3. 【新增】详情页所需数据
-    private String description;     // 笔记正文/描述
-    private String noteType;        // 笔记类型 (e.g., "美食", "风景")
-    private String locationName;    // 拍摄地点 (e.g., "北京市朝阳区...")
-    private List<String> imageUrls; // 多图
+    // 3. 详情页所需数据
+    private String description;     // 笔记正文
+    private String noteType;        // 笔记类型
+    private String locationName;    // 地点名称
+    private List<String> imageUrls; // 多图列表
 
-    // 构造函数 (用于测试)
+    // 4. 【关键新增】发布时间字段 (解决报错的核心)
+    private String createTime;
+
+    // 构造函数
     public RegionItem(LatLng latLng, String noteId, String title, String photoUrl,
                       String authorName, String authorAvatarUrl, int likeCount,
                       String description, String noteType, String locationName) {
@@ -48,19 +49,21 @@ public class RegionItem implements ClusterItem, Serializable {
         this.noteType = noteType;
         this.locationName = locationName;
         this.likedByCurrentUser = false;
+        // 默认为空，由 MainActivity setCreateTime 注入
+        this.createTime = "2023-11-27";
     }
 
-    // 兼容旧的构造函数 (用于 initClusterData)
+    // 兼容旧构造函数
     public RegionItem(LatLng latLng, String title) {
         this(latLng, "id_" + title, title, null,
                 "测试用户", null, (int)(Math.random() * 100),
-                "这是笔记的正文内容，用于测试显示。This is the note description.", // 默认正文
-                "风景", // 默认类型
-                "北京市朝阳区" // 默认地点
+                "这是笔记的正文内容...",
+                "风景",
+                "北京市朝阳区"
         );
     }
 
-    // --- Getters (用于 Adapter 绑定数据) ---
+    // --- Getters & Setters ---
 
     @Override
     public LatLng getPosition() {
@@ -70,6 +73,16 @@ public class RegionItem implements ClusterItem, Serializable {
         return mLatLng;
     }
 
+    // 【关键新增】Getter 和 Setter 方法
+    public String getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(String createTime) {
+        this.createTime = createTime;
+    }
+
+    // 其他 Getters
     public String getNoteId() { return noteId; }
     public String getTitle() { return title; }
     public String getPhotoUrl() { return photoUrl; }
@@ -79,12 +92,17 @@ public class RegionItem implements ClusterItem, Serializable {
     public void setLikeCount(int likeCount) { this.likeCount = Math.max(0, likeCount); }
     public boolean isLikedByCurrentUser() { return likedByCurrentUser; }
     public void setLikedByCurrentUser(boolean likedByCurrentUser) { this.likedByCurrentUser = likedByCurrentUser; }
-
-    // 【新增】Getters
     public String getDescription() { return description; }
     public String getNoteType() { return noteType; }
     public String getLocationName() { return locationName; }
-
     public List<String> getImageUrls() { return imageUrls; }
     public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
+
+    // 在 RegionItem.java 中添加
+    public void setAuthorAvatarUrl(String authorAvatarUrl) {
+        this.authorAvatarUrl = authorAvatarUrl;
+    }
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
+    }
 }

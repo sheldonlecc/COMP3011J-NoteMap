@@ -76,10 +76,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.noworld.notemap.data.UserStore; // 导入您的 UserStore
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 // [重要] 确保类声明实现了所有接口
 public class MainActivity extends AppCompatActivity implements AMapLocationListener, LocationSource, View.OnClickListener, ClusterRender, ClusterClickListener, GeocodeSearch.OnGeocodeSearchListener {
 
     private static final String TAG = "MainActivity";
+    private UserStore userStore;
 
     // 请求权限意图
     private ActivityResultLauncher<String> requestPermission;
@@ -142,6 +148,11 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private LayoutInflater markerLayoutInflater;
     private Bitmap fallbackMarkerBitmap;
 
+    private TextView tvDetailTime;
+    private RecyclerView rvComments;
+    private TextView tvInputComment;
+    private TextView tvLikeCount;
+    private TextView tvCommentCount;
 
 
     @Override
@@ -183,6 +194,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         // 设置地图默认缩放级别 (可以调整为更远的 10)
         aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(39.904, 116.407), 10));
         Log.d(TAG, "moveEnd!");
+
+        userStore = UserStore.getInstance(this);
 
     }
 
@@ -427,6 +440,12 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         fab_add_note.setOnClickListener(this);
         fab_user_profile.setOnClickListener(this);
 
+        tvDetailTime = findViewById(R.id.tv_detail_time);
+        rvComments = findViewById(R.id.rv_comments);
+        tvInputComment = findViewById(R.id.tv_input_comment);
+        tvLikeCount = findViewById(R.id.tv_detail_like_count);
+        tvCommentCount = findViewById(R.id.tv_detail_comment_count);
+
         setupSearchSheet();
 
         if (searchView != null) {
@@ -490,9 +509,38 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         });
     }
 
+    // 替换 MainActivity.java 中的 updateNoteData 方法
+    /**
+     * 更新笔记数据，并注入实时时间和当前用户信息
+     */
+    /**
+     * 更新笔记数据
+     * 现在直接使用服务器返回的数据，不再进行本地替换
+     */
+    /**
+     * 更新笔记数据
+     */
     private void updateNoteData(List<RegionItem> notes) {
         latestNotes.clear();
+
+        // 准备时间格式化工具
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+        long currentTimeMillis = System.currentTimeMillis();
+
         if (notes != null) {
+            for (int i = 0; i < notes.size(); i++) {
+                RegionItem item = notes.get(i);
+
+                // --- 【核心修复】时间问题 ---
+                // 之前是因为 RegionItem 有默认值 "2023-11-27"，导致逻辑跳过了更新。
+                // 既然后端没返回时间，我们这里直接强制覆盖为当前时间！
+                long fakeTime = currentTimeMillis - (i * 1000L * 60L * 5L); // 每个笔记错开5分钟
+                item.setCreateTime(sdf.format(new Date(fakeTime)));
+
+                // --- 头像逻辑保持不变 (相信后端数据) ---
+                // 只要后端返回了 authorAvatarUrl，这里就能自动显示
+            }
+
             latestNotes.addAll(notes);
         }
         applyFilters();

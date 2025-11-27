@@ -97,9 +97,12 @@ public class AliNoteRepository {
                 List<RegionItem> items = new ArrayList<>();
                 String uid = getCurrentUid();
                 Set<String> likedIds = likedStore.getLikedIds(uid);
+
+                // 【纯净模式】直接使用后端返回的数据，不做任何修改
                 for (MapNoteResponse r : response.body()) {
                     MapNote note = MapNote.fromResponse(r);
                     RegionItem regionItem = note.toRegionItem();
+
                     if (likedIds.contains(regionItem.getNoteId())) {
                         regionItem.setLikedByCurrentUser(true);
                     }
@@ -135,9 +138,12 @@ public class AliNoteRepository {
                 List<MapNote> list = new ArrayList<>();
                 String uid = getCurrentUid();
                 Set<String> likedIds = likedStore.getLikedIds(uid);
+
+                // 【纯净模式】直接使用后端返回的数据
                 for (MapNoteResponse r : response.body()) {
                     MapNote note = MapNote.fromResponse(r);
-                    RegionItem regionItem = note.toRegionItem();
+                    RegionItem regionItem = note.toRegionItem(); // 确保这里面传递了 authorName
+
                     if (likedIds.contains(regionItem.getNoteId())) {
                         regionItem.setLikedByCurrentUser(true);
                     }
@@ -187,12 +193,24 @@ public class AliNoteRepository {
                 long size = getFileSize(imageUri);
                 String mime = appContext.getContentResolver().getType(imageUri);
                 OssPresignRequest request = new OssPresignRequest(fileName, size, mime != null ? mime : "image/jpeg");
+
+                // <<< 在这里添加调试日志 1 >>>
+                Log.d(TAG, "Step 1: Requesting presigned URL for " + fileName);
+
                 Response<OssPresignResponse> presignResp = api.getOssPresign(request).execute();
+
+                // <<< 在这里添加调试日志 2 >>>
+                Log.d(TAG, "Step 2: Presign response received. Success=" + presignResp.isSuccessful());
+
                 if (!presignResp.isSuccessful() || presignResp.body() == null) {
                     callback.onError(new IllegalStateException("获取上传凭证失败"));
                     return;
                 }
                 OssPresignResponse presign = presignResp.body();
+
+                // <<< 在这里添加调试日志 3 >>>
+                Log.d(TAG, "Step 3: Starting actual upload to URL: " + presign.uploadUrl);
+
                 boolean uploadOk = uploadToOss(presign, imageUri);
                 if (!uploadOk) {
                     callback.onError(new IllegalStateException("上传失败"));
