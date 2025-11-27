@@ -5,8 +5,8 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Build;
+import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
@@ -18,9 +18,9 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
@@ -30,20 +30,23 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.load.model.LazyHeaders;
+import com.bumptech.glide.request.RequestOptions;
 import com.google.android.material.tabs.TabLayout;
+import com.noworld.notemap.R;
+import com.noworld.notemap.data.AliNoteRepository;
 import com.noworld.notemap.data.LikedStore;
-import com.noworld.notemap.data.dto.LoginResponse;
+import com.noworld.notemap.data.MapNote;
 import com.noworld.notemap.data.TokenStore;
 import com.noworld.notemap.data.UserStore;
-import com.noworld.notemap.data.AliNoteRepository;
-import com.noworld.notemap.data.MapNote;
-import com.noworld.notemap.R;
+import com.noworld.notemap.data.dto.LoginResponse;
 import com.amap.apis.cluster.demo.RegionItem;
-import com.noworld.notemap.ui.NoteCardAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+// 引入高斯模糊库
+import jp.wasabeef.glide.transformations.BlurTransformation;
 
 /**
  * 个人主页 Activity
@@ -51,6 +54,11 @@ import java.util.Set;
 public class ProfileActivity extends AppCompatActivity {
 
     private Toolbar toolbar;
+
+    // 【新增】背景图相关控件
+    private FrameLayout headerContainer;
+    private ImageView ivProfileBackground;
+
     private ImageView ivAvatar;
     private TextView tvUsername;
     private TextView tvAccountId;
@@ -68,11 +76,18 @@ public class ProfileActivity extends AppCompatActivity {
     private final List<RegionItem> likedRegionItems = new ArrayList<>();
     private final List<RegionItem> myRegionItems = new ArrayList<>();
 
+    // 【新增】背景图选择器
+    private ActivityResultLauncher<Intent> backgroundPickerLauncher;
+
     private ActivityResultLauncher<Intent> avatarPickerLauncher;
-    private ActivityResultLauncher<String> avatarPermissionLauncher;
+    private ActivityResultLauncher<String> permissionLauncher;
+
+    // 【新增】标记当前是选头像还是选背景 (true=头像, false=背景)
+    private boolean isPickingAvatar = true;
+
     private boolean isAvatarUploading = false;
     private boolean isNotesLoading = false;
-    private Uri tempAvatarUri = null; // 选图后的临时头像，在上传完成前使用
+    private Uri tempAvatarUri = null;
 
     private TokenStore tokenStore;
     private UserStore userStore;
@@ -90,6 +105,11 @@ public class ProfileActivity extends AppCompatActivity {
         noteRepository = AliNoteRepository.getInstance(this);
 
         toolbar = findViewById(R.id.toolbar_profile);
+
+        // 【新增 1】绑定新布局中的控件
+        headerContainer = findViewById(R.id.header_container);
+        ivProfileBackground = findViewById(R.id.iv_profile_background);
+
         ivAvatar = findViewById(R.id.iv_avatar);
         tvUsername = findViewById(R.id.tv_username);
         tvAccountId = findViewById(R.id.tv_account_id);
@@ -111,6 +131,8 @@ public class ProfileActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
+            // 隐藏标题，避免遮挡背景
+            getSupportActionBar().setTitle("");
         }
 
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
@@ -140,10 +162,246 @@ public class ProfileActivity extends AppCompatActivity {
             public void onTabReselected(TabLayout.Tab tab) { }
         });
 
-        initAvatarPicker();
+        // 初始化所有选择器
+        initPickers();
 
         ivAvatar.setOnClickListener(v -> handleAvatarClick());
         tvUsername.setOnClickListener(v -> handleNicknameClick());
+
+        // 【新增 2】点击头部背景区域触发更换背景
+        headerContainer.setOnClickListener(v -> handleBackgroundClick());
+
+        // 【新增 3】加载上次保存的背景图
+        loadProfileBackground();
+    }
+
+    // ===========================================
+    // 【新增方法区】处理背景图逻辑
+    // ===========================================
+
+    private void initPickers() {
+        // 1. 头像选择回调
+        avatarPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) {
+                            tempAvatarUri = uri;
+                            ivAvatar.setImageURI(uri);
+                            ivAvatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                            uploadAvatar(uri);
+                        }
+                    }
+                });
+
+        // 2. 【新增】背景图选择回调
+        backgroundPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) {
+                            // A. 加载并模糊显示
+                            loadBlurBackground(uri);
+                            // B. 本地保存
+                            userStore.setProfileBg(uri.toString());
+                            Toast.makeText(this, "背景已更换", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+        // 3. 权限请求回调
+        permissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                granted -> {
+                    if (granted) {
+                        openGallery();
+                    } else {
+                        Toast.makeText(this, "需要相册权限以选择图片", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    // 加载本地存储的背景
+    private void loadProfileBackground() {
+        String bgUriString = userStore.getProfileBg();
+        if (!TextUtils.isEmpty(bgUriString)) {
+            loadBlurBackground(Uri.parse(bgUriString));
+        } else {
+            // 默认背景色
+            ivProfileBackground.setImageResource(R.color.colorPrimary);
+        }
+    }
+
+    // 使用 Glide 加载并应用高斯模糊
+    private void loadBlurBackground(Object model) {
+        if (model == null) return;
+        Glide.with(this)
+                .load(model)
+                .apply(RequestOptions.bitmapTransform(new BlurTransformation(25, 3))) // 模糊半径25，采样3
+                .into(ivProfileBackground);
+    }
+
+    // 点击背景触发
+    private void handleBackgroundClick() {
+        new AlertDialog.Builder(this)
+                .setTitle("更换背景")
+                .setMessage("是否更换个人主页背景图像？")
+                .setPositiveButton("更换", (dialog, which) -> {
+                    isPickingAvatar = false; // 标记：我在选背景
+                    ensurePermissionAndPick();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    // ===========================================
+
+    private void handleAvatarClick() {
+        if (TextUtils.isEmpty(tokenStore.getToken())) {
+            startLogin();
+            return;
+        }
+        isPickingAvatar = true; // 标记：我在选头像
+        ensurePermissionAndPick();
+    }
+
+    private void handleNicknameClick() {
+        if (TextUtils.isEmpty(tokenStore.getToken())) {
+            startLogin();
+            return;
+        }
+        showEditNicknameDialog();
+    }
+
+    private void startLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        startActivity(intent);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void ensurePermissionAndPick() {
+        String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                ? Manifest.permission.READ_MEDIA_IMAGES
+                : Manifest.permission.READ_EXTERNAL_STORAGE;
+        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
+            openGallery();
+        } else {
+            permissionLauncher.launch(permission);
+        }
+    }
+
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        // 根据标记判断是启动哪个选择器
+        if (isPickingAvatar) {
+            avatarPickerLauncher.launch(intent);
+        } else {
+            backgroundPickerLauncher.launch(intent);
+        }
+    }
+
+    private void uploadAvatar(Uri uri) {
+        if (uri == null || isAvatarUploading) return;
+        isAvatarUploading = true;
+        updateLoadingState();
+
+        // 1. 上传 OSS
+        noteRepository.uploadImage(uri, new AliNoteRepository.UploadCallback() {
+            @Override
+            public void onSuccess(String fileUrl) {
+                // 2. OSS 成功后，同步给后端数据库
+                noteRepository.updateUserInfo(null, fileUrl, new AliNoteRepository.SimpleCallback() {
+                    @Override
+                    public void onSuccess() {
+                        runOnUiThread(() -> {
+                            isAvatarUploading = false;
+                            updateLoadingState();
+
+                            // 3. 后端成功后，更新本地
+                            userStore.updateAvatar(fileUrl);
+                            tempAvatarUri = null;
+                            updateProfileUI();
+                            Toast.makeText(ProfileActivity.this, "头像已同步到云端", Toast.LENGTH_SHORT).show();
+                        });
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        runOnUiThread(() -> {
+                            isAvatarUploading = false;
+                            updateLoadingState();
+                            Toast.makeText(ProfileActivity.this, "云端同步失败: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                });
+            }
+
+            @Override
+            public void onError(@NonNull Throwable throwable) {
+                runOnUiThread(() -> {
+                    isAvatarUploading = false;
+                    updateLoadingState();
+                    Toast.makeText(ProfileActivity.this, "图片上传失败: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void showEditNicknameDialog() {
+        String currentName = userStore.getUsername();
+        final EditText input = new EditText(this);
+        input.setHint("请输入昵称");
+        if (!TextUtils.isEmpty(currentName)) {
+            input.setText(currentName);
+            input.setSelection(currentName.length());
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("修改昵称")
+                .setView(input)
+                .setPositiveButton("保存", (dialog, which) -> {
+                    String newName = input.getText() != null ? input.getText().toString().trim() : "";
+                    if (TextUtils.isEmpty(newName)) {
+                        Toast.makeText(this, "昵称不能为空", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // 调用后端保存昵称
+                    noteRepository.updateUserInfo(newName, null, new AliNoteRepository.SimpleCallback() {
+                        @Override
+                        public void onSuccess() {
+                            runOnUiThread(() -> {
+                                userStore.updateUsername(newName);
+                                updateProfileUI();
+                                Toast.makeText(ProfileActivity.this, "昵称已同步", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+
+                        @Override
+                        public void onError(Throwable t) {
+                            runOnUiThread(() -> {
+                                Toast.makeText(ProfileActivity.this, "修改失败: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    });
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void updateLoadingState() {
+        progressBar.setVisibility((isAvatarUploading || isNotesLoading) ? View.VISIBLE : View.GONE);
     }
 
     @Override
@@ -151,13 +409,7 @@ public class ProfileActivity extends AppCompatActivity {
         super.onStart();
         updateProfileUI();
         loadMyNotes();
-        // 预加载点赞列表，避免切换时等待
         loadLikedNotes();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
     }
 
     private void updateProfileUI() {
@@ -191,6 +443,12 @@ public class ProfileActivity extends AppCompatActivity {
         tvUsername.setText(TextUtils.isEmpty(username) ? "已登录用户" : username);
         tvAccountId.setText("UID: " + (TextUtils.isEmpty(uid) ? "未知" : uid));
         tvSignature.setText("欢迎回来");
+
+        // 【视觉优化】确保文字在背景图上可见
+        tvUsername.setTextColor(ContextCompat.getColor(this, R.color.white));
+        tvAccountId.setTextColor(0xDDFFFFFF);
+        tvSignature.setTextColor(0xDDFFFFFF);
+
         btnProfileAction.setText("退出登录");
         btnProfileAction.setOnClickListener(v -> {
             tokenStore.clear();
@@ -207,7 +465,7 @@ public class ProfileActivity extends AppCompatActivity {
             tvEmpty.setVisibility(View.VISIBLE);
             rvMyNotes.setVisibility(View.GONE);
         });
-        // 上传中时优先使用本地选图的临时头像，避免被占位图覆盖
+
         if (tempAvatarUri != null && isAvatarUploading) {
             Glide.with(this)
                     .load(tempAvatarUri)
@@ -223,36 +481,6 @@ public class ProfileActivity extends AppCompatActivity {
                     .circleCrop()
                     .into(ivAvatar);
         }
-    }
-
-    private void handleAvatarClick() {
-        if (TextUtils.isEmpty(tokenStore.getToken())) {
-            startLogin();
-            return;
-        }
-        ensureAvatarPermissionAndPick();
-    }
-
-    private void handleNicknameClick() {
-        if (TextUtils.isEmpty(tokenStore.getToken())) {
-            startLogin();
-            return;
-        }
-        showEditNicknameDialog();
-    }
-
-    private void startLogin() {
-        Intent intent = new Intent(this, LoginActivity.class);
-        startActivity(intent);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 
     private void loadMyNotes() {
@@ -388,7 +616,6 @@ public class ProfileActivity extends AppCompatActivity {
                         tvEmpty.setText("暂无点赞");
                         tvEmpty.setVisibility(View.VISIBLE);
                     }
-                    // 让首页等列表绑定时能拿到最新计数
                     likedStore.toggle(userStore.getUid(), regionItem.getNoteId(), false);
                 } else {
                     likedStore.toggle(userStore.getUid(), regionItem.getNoteId(), true);
@@ -417,152 +644,6 @@ public class ProfileActivity extends AppCompatActivity {
             }
         }
         return -1;
-    }
-
-    private void openNoteDetail(RegionItem item) {
-        if (item == null) return;
-        Intent intent = new Intent(this, NoteDetailActivity.class);
-        intent.putExtra(NoteDetailActivity.EXTRA_NOTE_DATA, item);
-        startActivity(intent);
-    }
-
-    private void initAvatarPicker() {
-        avatarPickerLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        Uri uri = result.getData().getData();
-                        if (uri != null) {
-                            tempAvatarUri = uri;
-                            // 先本地预览，避免上传成功前显示为空
-                            ivAvatar.setImageURI(uri);
-                            ivAvatar.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                            uploadAvatar(uri);
-                        }
-                    }
-                });
-
-        avatarPermissionLauncher = registerForActivityResult(
-                new ActivityResultContracts.RequestPermission(),
-                granted -> {
-                    if (granted) {
-                        openGalleryForAvatar();
-                    } else {
-                        Toast.makeText(this, "需要相册权限以更换头像", Toast.LENGTH_SHORT).show();
-                    }
-                });
-    }
-
-    private void ensureAvatarPermissionAndPick() {
-        String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                ? Manifest.permission.READ_MEDIA_IMAGES
-                : Manifest.permission.READ_EXTERNAL_STORAGE;
-        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
-            openGalleryForAvatar();
-        } else {
-            avatarPermissionLauncher.launch(permission);
-        }
-    }
-
-    private void openGalleryForAvatar() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("image/*");
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        avatarPickerLauncher.launch(intent);
-    }
-
-    private void uploadAvatar(Uri uri) {
-        if (uri == null || isAvatarUploading) return;
-        isAvatarUploading = true;
-        updateLoadingState();
-
-        // 1. 先把图片上传到阿里云 OSS
-        noteRepository.uploadImage(uri, new AliNoteRepository.UploadCallback() {
-            @Override
-            public void onSuccess(String fileUrl) {
-                // 2. OSS 上传成功，拿到 fileUrl
-                // 【核心修改】现在要把这个 URL 发给后端保存！
-                noteRepository.updateUserInfo(null, fileUrl, new AliNoteRepository.SimpleCallback() {
-                    @Override
-                    public void onSuccess() {
-                        runOnUiThread(() -> {
-                            isAvatarUploading = false;
-                            updateLoadingState();
-
-                            // 3. 后端保存成功后，再更新本地显示
-                            userStore.updateAvatar(fileUrl);
-                            tempAvatarUri = null;
-                            updateProfileUI();
-                            Toast.makeText(ProfileActivity.this, "头像已同步到云端", Toast.LENGTH_SHORT).show();
-                        });
-                    }
-
-                    @Override
-                    public void onError(Throwable t) {
-                        runOnUiThread(() -> {
-                            isAvatarUploading = false;
-                            updateLoadingState();
-                            Toast.makeText(ProfileActivity.this, "云端同步失败: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-                        });
-                    }
-                });
-            }
-
-            @Override
-            public void onError(@NonNull Throwable throwable) {
-                runOnUiThread(() -> {
-                    isAvatarUploading = false;
-                    updateLoadingState();
-                    Toast.makeText(ProfileActivity.this, "图片上传失败: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
-                });
-            }
-        });
-    }
-
-    private void showEditNicknameDialog() {
-        String currentName = userStore.getUsername();
-        final EditText input = new EditText(this);
-        input.setHint("请输入昵称");
-        if (!TextUtils.isEmpty(currentName)) {
-            input.setText(currentName);
-            input.setSelection(currentName.length());
-        }
-        new AlertDialog.Builder(this)
-                .setTitle("修改昵称")
-                .setView(input)
-                .setPositiveButton("保存", (dialog, which) -> {
-                    String newName = input.getText() != null ? input.getText().toString().trim() : "";
-                    if (TextUtils.isEmpty(newName)) {
-                        Toast.makeText(this, "昵称不能为空", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    // 【核心修改】调用后端接口保存昵称
-                    noteRepository.updateUserInfo(newName, null, new AliNoteRepository.SimpleCallback() {
-                        @Override
-                        public void onSuccess() {
-                            runOnUiThread(() -> {
-                                // 后端成功后，更新本地
-                                userStore.updateUsername(newName);
-                                updateProfileUI();
-                                Toast.makeText(ProfileActivity.this, "昵称已同步", Toast.LENGTH_SHORT).show();
-                            });
-                        }
-
-                        @Override
-                        public void onError(Throwable t) {
-                            runOnUiThread(() -> {
-                                Toast.makeText(ProfileActivity.this, "修改失败: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-                            });
-                        }
-                    });
-                })
-                .setNegativeButton("取消", null)
-                .show();
-    }
-
-    private void updateLoadingState() {
-        progressBar.setVisibility((isAvatarUploading || isNotesLoading) ? View.VISIBLE : View.GONE);
     }
 
     private Object buildAvatarGlideModel(String avatarUrl) {

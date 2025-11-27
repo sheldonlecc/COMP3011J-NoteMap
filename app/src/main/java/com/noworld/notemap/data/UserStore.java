@@ -25,6 +25,9 @@ public class UserStore {
     private static UserStore instance;
     private final SharedPreferences prefs;
 
+    // 1. 定义一个 Key 用来存背景图路径
+    private static final String KEY_PROFILE_BG = "profile_bg_uri";
+
     private UserStore(Context context) {
         prefs = context.getApplicationContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
@@ -168,5 +171,19 @@ public class UserStore {
             // ignore, fallback to server提供的 uid
         }
         return null;
+    }
+
+    /**
+     * 保存背景图的 URI 字符串
+     */
+    public void setProfileBg(String uriString) {
+        prefs.edit().putString(KEY_PROFILE_BG, uriString).apply();
+    }
+
+    /**
+     * 获取背景图的 URI 字符串
+     */
+    public String getProfileBg() {
+        return prefs.getString(KEY_PROFILE_BG, null);
     }
 }
