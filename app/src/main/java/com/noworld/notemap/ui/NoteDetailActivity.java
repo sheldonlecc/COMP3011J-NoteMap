@@ -17,7 +17,6 @@ import androidx.viewpager2.widget.ViewPager2;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-// 【重要】确保导入包名与您的 RegionItem 文件一致
 import com.amap.apis.cluster.demo.RegionItem;
 import com.bumptech.glide.Glide;
 import com.noworld.notemap.R;
@@ -39,11 +38,11 @@ public class NoteDetailActivity extends AppCompatActivity {
     private TextView tvDetailType;
     private TextView tvDetailLocation;
 
-    // --- 【新增】作者信息控件 ---
+    // --- 作者信息控件 ---
     private ImageView ivDetailAvatar;
     private TextView tvDetailAuthor;
 
-    // --- 【新增】底部互动栏和评论区控件 ---
+    // --- 底部互动栏和评论区控件 ---
     private TextView tvDetailTime;      // 发布时间
     private RecyclerView rvComments;    // 评论列表
     private TextView tvInputComment;    // 底部输入框
@@ -77,7 +76,6 @@ public class NoteDetailActivity extends AppCompatActivity {
     }
 
     private void initView() {
-        // 绑定原有控件 (请确保 XML 中有这些 ID)
         toolbar = findViewById(R.id.toolbar_note_detail);
         vpDetailPhotos = findViewById(R.id.vp_detail_photos);
         tvPhotoIndicator = findViewById(R.id.tv_photo_indicator);
@@ -86,21 +84,17 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvDetailType = findViewById(R.id.tv_detail_type);
         tvDetailLocation = findViewById(R.id.tv_detail_location);
 
-        // 【新增】绑定作者信息
         ivDetailAvatar = findViewById(R.id.iv_detail_avatar);
         tvDetailAuthor = findViewById(R.id.tv_detail_author);
 
-        // 【新增】绑定底部互动栏和评论区
         tvDetailTime = findViewById(R.id.tv_detail_time);
         rvComments = findViewById(R.id.rv_comments);
         tvInputComment = findViewById(R.id.tv_input_comment);
         tvLikeCount = findViewById(R.id.tv_detail_like_count);
         tvCommentCount = findViewById(R.id.tv_detail_comment_count);
 
-        // 初始化评论区 RecyclerView
         if (rvComments != null) {
             rvComments.setLayoutManager(new LinearLayoutManager(this));
-            // 关键：禁止 RecyclerView 自身滚动，让外层的 NestedScrollView 处理滚动
             rvComments.setNestedScrollingEnabled(false);
         }
     }
@@ -117,7 +111,6 @@ public class NoteDetailActivity extends AppCompatActivity {
         if (tvInputComment != null) {
             tvInputComment.setOnClickListener(v -> {
                 Toast.makeText(this, "点击了评论框", Toast.LENGTH_SHORT).show();
-                // 这里可以调用弹出键盘或 Dialog 的逻辑
             });
         }
     }
@@ -129,32 +122,32 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvDetailType.setText(mNote.getNoteType() != null ? "#" + mNote.getNoteType() : "#推荐");
         tvDetailLocation.setText(mNote.getLocationName());
 
-        // 2. 【新增】填充作者信息
+        // 2. 填充作者信息
         if (tvDetailAuthor != null) {
             tvDetailAuthor.setText(mNote.getAuthorName());
         }
+
+        // 【核心修改1】作者头像圆形裁剪
         if (ivDetailAvatar != null) {
             Glide.with(this)
                     .load(mNote.getAuthorAvatarUrl())
-                    .placeholder(R.drawable.ic_car) // 默认头像
-                    .error(R.drawable.ic_car)
-                    .circleCrop() // 圆形裁剪
+                    .placeholder(R.drawable.ic_profile) // 建议换成默认头像图，而不是车
+                    .error(R.drawable.ic_profile)
+                    .circleCrop() // 【这里已经是圆形了】
                     .into(ivDetailAvatar);
         }
 
-        // 3. 【新增】填充发布时间（现在调用 getCreateTime 不会报错了）
+        // 3. 填充时间
         if (tvDetailTime != null) {
             String time = mNote.getCreateTime();
-            // 如果 createTime 为空，使用默认值
             tvDetailTime.setText("发布于 " + (time != null ? time : "2023-11-27"));
         }
 
-        // 填充点赞数
+        // 4. 填充数据
         if (tvLikeCount != null) {
             tvLikeCount.setText(String.valueOf(mNote.getLikeCount()));
         }
 
-        // 4. 处理图片轮播
         photoUrls.clear();
         if (mNote.getImageUrls() != null && !mNote.getImageUrls().isEmpty()) {
             photoUrls.addAll(mNote.getImageUrls());
@@ -166,37 +159,32 @@ public class NoteDetailActivity extends AppCompatActivity {
         }
         setupViewPager();
 
-        // 5. 【新增】加载评论列表
+        // 5. 加载评论
         loadComments();
     }
 
     private void loadComments() {
-        // 模拟评论数据
         List<CommentItem> comments = new ArrayList<>();
         comments.add(new CommentItem("爱吃猫的鱼", "这个地方真不错！我也想去。", "10分钟前"));
         comments.add(new CommentItem("旅行家Bob", "拍得真好，请问是用什么相机拍的？", "2小时前"));
         comments.add(new CommentItem("路人甲", "已收藏，下次去打卡。", "1天前"));
         comments.add(new CommentItem("摄影师David", "构图很棒！", "2天前"));
 
-        // 设置适配器
         CommentAdapter adapter = new CommentAdapter(comments);
         if (rvComments != null) {
             rvComments.setAdapter(adapter);
         }
 
-        // 更新底部评论数显示
         if (tvCommentCount != null) {
             tvCommentCount.setText(String.valueOf(comments.size()));
         }
 
-        // 更新标题栏“共X条评论”
         TextView tvSectionTitle = findViewById(R.id.tv_comment_section_title);
         if (tvSectionTitle != null) {
             tvSectionTitle.setText("共 " + comments.size() + " 条评论");
         }
     }
 
-    // 处理 Toolbar 返回
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
@@ -230,7 +218,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvPhotoIndicator.setText((position + 1) + "/" + photoUrls.size());
     }
 
-    // --- 内部类：图片轮播适配器 ---
+    // --- 内部类：图片轮播 ---
     private static class PhotoPagerAdapter extends RecyclerView.Adapter<PhotoPagerAdapter.PhotoVH> {
         private final List<String> data;
         private final Runnable onClick;
@@ -272,48 +260,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         }
     }
 
-    // --- 【新增】内部类：评论模型 ---
-    static class CommentItem {
-        String userName;
-        String content;
-        String time;
-        public CommentItem(String u, String c, String t) { userName = u; content = c; time = t; }
-    }
+    // --- 内部类：评论模型 ---
 
-    // --- 【新增】内部类：评论适配器 ---
-    static class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.VH> {
-        private final List<CommentItem> data;
-        public CommentAdapter(List<CommentItem> data) { this.data = data; }
 
-        @NonNull
-        @Override
-        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // 使用之前定义的 item_comment.xml
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_comment, parent, false);
-            return new VH(v);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull VH holder, int position) {
-            CommentItem item = data.get(position);
-            holder.tvUser.setText(item.userName);
-            holder.tvContent.setText(item.content);
-            holder.tvTime.setText(item.time);
-        }
-
-        @Override
-        public int getItemCount() { return data.size(); }
-
-        static class VH extends RecyclerView.ViewHolder {
-            TextView tvUser, tvContent, tvTime;
-            ImageView ivAvatar;
-            VH(View v) {
-                super(v);
-                tvUser = v.findViewById(R.id.tv_comment_user);
-                tvContent = v.findViewById(R.id.tv_comment_content);
-                tvTime = v.findViewById(R.id.tv_comment_time);
-                ivAvatar = v.findViewById(R.id.iv_comment_avatar);
-            }
-        }
-    }
 }
