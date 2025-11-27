@@ -475,16 +475,36 @@ public class ProfileActivity extends AppCompatActivity {
         if (uri == null || isAvatarUploading) return;
         isAvatarUploading = true;
         updateLoadingState();
+
+        // 1. 先把图片上传到阿里云 OSS
         noteRepository.uploadImage(uri, new AliNoteRepository.UploadCallback() {
             @Override
             public void onSuccess(String fileUrl) {
-                runOnUiThread(() -> {
-                    isAvatarUploading = false;
-                    updateLoadingState();
-                    userStore.updateAvatar(fileUrl);
-                    tempAvatarUri = null;
-                    updateProfileUI();
-                    Toast.makeText(ProfileActivity.this, "头像已更新", Toast.LENGTH_SHORT).show();
+                // 2. OSS 上传成功，拿到 fileUrl
+                // 【核心修改】现在要把这个 URL 发给后端保存！
+                noteRepository.updateUserInfo(null, fileUrl, new AliNoteRepository.SimpleCallback() {
+                    @Override
+                    public void onSuccess() {
+                        runOnUiThread(() -> {
+                            isAvatarUploading = false;
+                            updateLoadingState();
+
+                            // 3. 后端保存成功后，再更新本地显示
+                            userStore.updateAvatar(fileUrl);
+                            tempAvatarUri = null;
+                            updateProfileUI();
+                            Toast.makeText(ProfileActivity.this, "头像已同步到云端", Toast.LENGTH_SHORT).show();
+                        });
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        runOnUiThread(() -> {
+                            isAvatarUploading = false;
+                            updateLoadingState();
+                            Toast.makeText(ProfileActivity.this, "云端同步失败: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                        });
+                    }
                 });
             }
 
@@ -493,7 +513,7 @@ public class ProfileActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     isAvatarUploading = false;
                     updateLoadingState();
-                    Toast.makeText(ProfileActivity.this, "头像更新失败: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(ProfileActivity.this, "图片上传失败: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -516,9 +536,26 @@ public class ProfileActivity extends AppCompatActivity {
                         Toast.makeText(this, "昵称不能为空", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    userStore.updateUsername(newName);
-                    updateProfileUI();
-                    Toast.makeText(this, "昵称已更新", Toast.LENGTH_SHORT).show();
+
+                    // 【核心修改】调用后端接口保存昵称
+                    noteRepository.updateUserInfo(newName, null, new AliNoteRepository.SimpleCallback() {
+                        @Override
+                        public void onSuccess() {
+                            runOnUiThread(() -> {
+                                // 后端成功后，更新本地
+                                userStore.updateUsername(newName);
+                                updateProfileUI();
+                                Toast.makeText(ProfileActivity.this, "昵称已同步", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+
+                        @Override
+                        public void onError(Throwable t) {
+                            runOnUiThread(() -> {
+                                Toast.makeText(ProfileActivity.this, "修改失败: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    });
                 })
                 .setNegativeButton("取消", null)
                 .show();

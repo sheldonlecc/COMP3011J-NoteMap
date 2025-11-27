@@ -8,6 +8,8 @@ import com.noworld.notemap.data.dto.MapNoteResponse;
 import com.noworld.notemap.data.dto.OssPresignRequest;
 import com.noworld.notemap.data.dto.OssPresignResponse;
 import com.noworld.notemap.data.dto.PublishNoteRequest;
+import com.noworld.notemap.data.dto.UpdateProfileRequest;
+import com.noworld.notemap.data.dto.UpdateProfileResponse;
 
 import java.util.List;
 
@@ -40,4 +42,7 @@ public interface  ApiService {
 
     @POST("/api/oss/presign")
     Call<OssPresignResponse> getOssPresign(@Body OssPresignRequest request);
+
+    @POST("/api/auth/update")
+    Call<UpdateProfileResponse> updateProfile(@Body UpdateProfileRequest request);
 }

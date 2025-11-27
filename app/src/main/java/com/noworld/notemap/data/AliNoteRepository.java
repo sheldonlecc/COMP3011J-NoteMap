@@ -324,6 +324,37 @@ public class AliNoteRepository {
         });
     }
 
+    // === 新增：定义一个简单的回调接口 ===
+    public interface SimpleCallback {
+        void onSuccess();
+        void onError(Throwable t);
+    }
+
+    // === 新增：调用后端更新用户信息的接口 ===
+    public void updateUserInfo(String nickname, String avatarUrl, SimpleCallback callback) {
+        // 构建请求体 (DTO)
+        com.noworld.notemap.data.dto.UpdateProfileRequest request =
+                new com.noworld.notemap.data.dto.UpdateProfileRequest(nickname, avatarUrl);
+
+        // 发起请求
+        api.updateProfile(request).enqueue(new retrofit2.Callback<com.noworld.notemap.data.dto.UpdateProfileResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<com.noworld.notemap.data.dto.UpdateProfileResponse> call,
+                                   @NonNull Response<com.noworld.notemap.data.dto.UpdateProfileResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onSuccess();
+                } else {
+                    callback.onError(new IllegalStateException("更新失败: " + response.code()));
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<com.noworld.notemap.data.dto.UpdateProfileResponse> call, @NonNull Throwable t) {
+                callback.onError(t);
+            }
+        });
+    }
+
     private String getCurrentUid() {
         String token = tokenStore.getToken();
         String tokenUid = userStore.extractUidFromToken(token);
