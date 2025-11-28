@@ -11,6 +11,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -23,6 +24,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import androidx.core.widget.NestedScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -54,6 +56,7 @@ import java.util.Set;
 public class NoteDetailActivity extends AppCompatActivity {
 
     public static final String EXTRA_NOTE_DATA = "NOTE_DATA";
+    public static final String EXTRA_TARGET_COMMENT_ID = "TARGET_COMMENT_ID";
 
     private RegionItem mNote;
 
@@ -72,6 +75,7 @@ public class NoteDetailActivity extends AppCompatActivity {
     private RecyclerView rvComments;
     private TextView tvInputComment;
     private TextView tvCommentSectionTitle;
+    private NestedScrollView nestedScrollView;
 
     private LinearLayout layoutLike;
     private ImageView ivDetailLike;
@@ -94,6 +98,10 @@ public class NoteDetailActivity extends AppCompatActivity {
     private BottomSheetDialog commentDialog;
     private EditText commentInput;
     private final java.util.Map<String, Integer> replyShownCount = new java.util.HashMap<>();
+    private String targetCommentId;
+    private boolean hasScrolledToTargetComment = false;
+    private int targetCommentScrollAttempts = 0;
+    private int highlightAttempts = 0;
     private static final String TAG = "NoteDetailActivity";
 
     /**
@@ -132,6 +140,9 @@ public class NoteDetailActivity extends AppCompatActivity {
 
         if (getIntent().hasExtra(EXTRA_NOTE_DATA)) {
             mNote = (RegionItem) getIntent().getSerializableExtra(EXTRA_NOTE_DATA);
+        }
+        if (getIntent().hasExtra(EXTRA_TARGET_COMMENT_ID)) {
+            targetCommentId = getIntent().getStringExtra(EXTRA_TARGET_COMMENT_ID);
         }
 
         initView();
@@ -282,6 +293,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvDetailDescription = findViewById(R.id.tv_detail_description);
         tvDetailType = findViewById(R.id.tv_detail_type);
         tvDetailLocation = findViewById(R.id.tv_detail_location);
+        nestedScrollView = findViewById(R.id.nested_note_detail);
 
         ivDetailAvatar = findViewById(R.id.iv_detail_avatar);
         tvDetailAuthor = findViewById(R.id.tv_detail_author);
@@ -451,6 +463,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                         commentAdapter.updateData(comments);
                     }
                     updateCommentCounter();
+                    maybeScrollToTargetComment();
                 });
             }
 
@@ -539,6 +552,7 @@ public class NoteDetailActivity extends AppCompatActivity {
             commentAdapter.updateData(comments);
         }
         updateCommentCounter();
+        maybeScrollToTargetComment();
     }
 
     private String normalizeParentId(String pid) {
@@ -615,6 +629,100 @@ public class NoteDetailActivity extends AppCompatActivity {
             }
         }
         return map;
+    }
+
+    private void maybeScrollToTargetComment() {
+        if (hasScrolledToTargetComment || targetCommentId == null || comments.isEmpty() || rawComments.isEmpty() || rvComments == null) {
+            return;
+        }
+        scrollToCommentSection();
+        java.util.Map<String, CommentItem> idMap = toIdMap(rawComments);
+        CommentItem target = idMap.get(targetCommentId);
+        if (target == null) {
+            return;
+        }
+        String rootId = resolveRootParentId(target, idMap);
+        if (rootId != null && target.isReply()) {
+            int childCount = countRepliesForRoot(rootId, idMap);
+            replyShownCount.put(rootId, childCount);
+            comments.clear();
+            comments.addAll(buildDisplayList(rawComments));
+            if (commentAdapter != null) {
+                commentAdapter.updateData(comments);
+            }
+        }
+        int index = findCommentIndex(targetCommentId);
+        if (index >= 0) {
+            hasScrolledToTargetComment = true;
+            rvComments.post(() -> {
+                RecyclerView.LayoutManager lm = rvComments.getLayoutManager();
+                if (lm instanceof LinearLayoutManager) {
+                    int offsetPx = (int) (rvComments.getResources().getDisplayMetrics().density * 12);
+                    ((LinearLayoutManager) lm).scrollToPositionWithOffset(index, offsetPx);
+                } else {
+                    rvComments.scrollToPosition(index);
+                }
+                highlightCommentItem(index);
+            });
+        } else if (targetCommentScrollAttempts < 3) {
+            targetCommentScrollAttempts++;
+            // 再尝试几次，等待布局/数据完全就绪
+            rvComments.postDelayed(this::maybeScrollToTargetComment, 120);
+        }
+    }
+
+    private void scrollToCommentSection() {
+        if (nestedScrollView == null || tvCommentSectionTitle == null) return;
+        nestedScrollView.post(() -> nestedScrollView.smoothScrollTo(0, tvCommentSectionTitle.getTop()));
+    }
+
+    private void highlightCommentItem(int position) {
+        if (rvComments == null) return;
+        rvComments.postDelayed(() -> {
+            RecyclerView.ViewHolder vh = rvComments.findViewHolderForAdapterPosition(position);
+            if (vh == null) {
+                if (highlightAttempts < 5) {
+                    highlightAttempts++;
+                    highlightCommentItem(position);
+                }
+                return;
+            }
+            highlightAttempts = 0;
+            View targetView = vh.itemView;
+            Drawable originalBg = targetView.getBackground();
+            int highlightColor = 0x33FFC107; // 半透明亮黄
+            targetView.setBackgroundColor(highlightColor);
+            targetView.setAlpha(0.7f);
+            targetView.animate().alpha(1f).setDuration(200).setStartDelay(200).withEndAction(() ->
+                    targetView.postDelayed(() -> {
+                        targetView.animate().alpha(0.85f).setDuration(200).withEndAction(() -> {
+                            targetView.setBackground(originalBg);
+                            targetView.setAlpha(1f);
+                        }).start();
+                    }, 400)
+            ).start();
+        }, 120);
+    }
+
+    private int findCommentIndex(String id) {
+        if (id == null) return -1;
+        for (int i = 0; i < comments.size(); i++) {
+            if (id.equals(comments.get(i).getId())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private int countRepliesForRoot(String rootId, java.util.Map<String, CommentItem> idMap) {
+        if (rootId == null) return 0;
+        int count = 0;
+        for (CommentItem c : rawComments) {
+            if (rootId.equals(resolveRootParentId(c, idMap))) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private boolean ensureLoggedInForComment() {

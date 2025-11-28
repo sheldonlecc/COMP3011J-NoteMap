@@ -67,6 +67,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.noworld.notemap.R;
 import com.noworld.notemap.data.AliNoteRepository;
+import com.noworld.notemap.data.ApiClient;
+import com.noworld.notemap.data.ApiService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -153,6 +155,9 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private TextView tvInputComment;
     private TextView tvLikeCount;
     private TextView tvCommentCount;
+    private View notificationContainer;
+    private TextView tvNotificationBadge;
+    private NotificationBadgeHelper badgeHelper;
 
 
     @Override
@@ -434,11 +439,24 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         bottomSheetSearch = findViewById(R.id.bottom_sheet_search);
         rvSearchResult = findViewById(R.id.rv_search_result);
         tvSearchResultTitle = findViewById(R.id.tv_search_result_title);
+        notificationContainer = findViewById(R.id.notification_container);
+        tvNotificationBadge = findViewById(R.id.tv_notification_badge);
+        badgeHelper = new NotificationBadgeHelper(tvNotificationBadge);
+
+        // 默认隐藏徽标
+        badgeHelper.setCount(0);
 
         // [修改] 为新 FAB 按钮设置点击监听
         fab_my_location.setOnClickListener(this);
         fab_add_note.setOnClickListener(this);
         fab_user_profile.setOnClickListener(this);
+        if (notificationContainer != null) {
+            notificationContainer.setOnClickListener(v -> openNotificationPage());
+            View fabNotification = findViewById(R.id.fab_notification);
+            if (fabNotification != null) {
+                fabNotification.setOnClickListener(v -> openNotificationPage());
+            }
+        }
 
         tvDetailTime = findViewById(R.id.tv_detail_time);
         rvComments = findViewById(R.id.rv_comments);
@@ -451,8 +469,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         if (searchView != null) {
             searchView.setIconifiedByDefault(false);
             searchView.setSubmitButtonEnabled(true); // 显示右侧放大镜按钮
-            tweakSearchIconPosition();
-            searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+        tweakSearchIconPosition();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                 @Override
                 public boolean onQueryTextSubmit(String query) {
                     applySearchQuery(query);
@@ -507,6 +525,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                 runOnUiThread(() -> showMsg("同步笔记失败"));
             }
         });
+
+        fetchUnreadNotifications();
     }
 
     // 替换 MainActivity.java 中的 updateNoteData 方法
@@ -553,6 +573,47 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private void applySearchQuery(String query) {
         currentKeyword = query != null ? query.trim() : "";
         applyFilters();
+    }
+
+    private void openNotificationPage() {
+        Intent intent = new Intent(this, NotificationActivity.class);
+        startActivity(intent);
+        clearNotificationBadge();
+    }
+
+    private void clearNotificationBadge() {
+        if (badgeHelper != null) {
+            badgeHelper.setCount(0);
+        }
+        ApiService api = ApiClient.getService(this);
+        api.readAllNotifications().enqueue(new retrofit2.Callback<Void>() {
+            @Override
+            public void onResponse(retrofit2.Call<Void> call, retrofit2.Response<Void> response) {
+                // ignore
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<Void> call, Throwable t) {
+                // ignore
+            }
+        });
+    }
+
+    private void fetchUnreadNotifications() {
+        ApiService api = com.noworld.notemap.data.ApiClient.getService(this);
+        api.getNotificationUnreadCount().enqueue(new retrofit2.Callback<java.util.Map<String, Integer>>() {
+            @Override
+            public void onResponse(retrofit2.Call<java.util.Map<String, Integer>> call, retrofit2.Response<java.util.Map<String, Integer>> response) {
+                if (!response.isSuccessful() || response.body() == null || badgeHelper == null) return;
+                Integer cnt = response.body().get("count");
+                badgeHelper.setCount(cnt != null ? cnt : 0);
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<java.util.Map<String, Integer>> call, Throwable t) {
+                // ignore
+            }
+        });
     }
 
     private void applyFilters() {
@@ -685,8 +746,10 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
     private void tweakSearchIconPosition() {
         try {
-            ImageView magIcon = searchView.findViewById(androidx.appcompat.R.id.search_mag_icon);
-            View searchPlate = searchView.findViewById(androidx.appcompat.R.id.search_plate);
+            int magId = resolveSearchViewId("search_mag_icon");
+            int plateId = resolveSearchViewId("search_plate");
+            ImageView magIcon = magId != 0 ? searchView.findViewById(magId) : null;
+            View searchPlate = plateId != 0 ? searchView.findViewById(plateId) : null;
             if (searchPlate != null) {
                 searchPlate.setPadding(0, searchPlate.getPaddingTop(), searchPlate.getPaddingRight(), searchPlate.getPaddingBottom());
             }
@@ -699,6 +762,14 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             }
         } catch (Exception ignored) {
         }
+    }
+
+    private int resolveSearchViewId(String name) {
+        int id = searchView.getContext().getResources().getIdentifier(name, "id", getPackageName());
+        if (id == 0) {
+            id = searchView.getContext().getResources().getIdentifier(name, "id", "androidx.appcompat");
+        }
+        return id;
     }
 
     private void initGeocoder() {

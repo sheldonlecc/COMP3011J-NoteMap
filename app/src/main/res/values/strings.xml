@@ -1,3 +1,26 @@
 <resources>
     <string name="app_name">NoteMap</string>
+    <string name="note_detail_title">笔记详情</string>
+    <string name="published_at">发布于 %1$s</string>
+    <string name="unknown_time">未知时间</string>
+    <string name="toast_login_first">请先登录</string>
+    <string name="toast_login_first_comment">请先登录再发表评论</string>
+    <string name="toast_login_first_like_comment">请先登录再点赞评论</string>
+    <string name="toast_login_first_delete_comment">请先登录再删除</string>
+    <string name="toast_login_expired">登录已过期，请重新登录</string>
+    <string name="toast_comment_failed">评论失败: %1$s</string>
+    <string name="toast_comment_success">评论成功</string>
+    <string name="toast_comment_empty">评论内容不能为空</string>
+    <string name="hint_comment_placeholder">友善评论，理性发言</string>
+    <string name="title_reply_comment">回复评论</string>
+    <string name="title_add_comment">发表评论</string>
+    <string name="dialog_delete_comment_title">删除评论</string>
+    <string name="dialog_delete_comment_message">确定要删除这条评论吗？</string>
+    <string name="toast_comment_deleted">已删除</string>
+    <string name="toast_comment_delete_failed">删除失败: %1$s</string>
+    <string name="action_more_comments">显示更多评论</string>
+    <string name="action_more_comments_with_count">显示更多评论 (%1$d)</string>
+    <string name="comment_reply_format">回复 %1$s：%2$s</string>
+    <string name="toast_action_failed">操作失败: %1$s</string>
+    <string name="notification_title">消息通知</string>
 </resources>

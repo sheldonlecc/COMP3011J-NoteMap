@@ -95,6 +95,12 @@
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
 
+        <activity
+            android:name=".ui.NotificationActivity"
+            android:label="@string/notification_title"
+            android:exported="false"
+            android:parentActivityName=".ui.MainActivity" />
+
         <service android:name="com.amap.api.location.APSService" />
 
         <meta-data

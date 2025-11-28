@@ -12,6 +12,7 @@ import com.noworld.notemap.data.dto.UpdateProfileRequest;
 import com.noworld.notemap.data.dto.UpdateProfileResponse;
 import com.noworld.notemap.data.dto.AddCommentRequest;
 import com.noworld.notemap.data.dto.CommentResponse;
+import com.noworld.notemap.data.dto.NotificationResponse;
 
 import java.util.List;
 
@@ -75,4 +76,14 @@ public interface  ApiService {
     // 【新增】删除笔记
     @DELETE("/api/notes/{id}")
     Call<Void> deleteNote(@Path("id") String id);
+
+    // 通知
+    @GET("/api/notifications")
+    Call<List<NotificationResponse>> getNotifications(@Query("page") Integer page, @Query("size") Integer size);
+
+    @GET("/api/notifications/unread_count")
+    Call<java.util.Map<String, Integer>> getNotificationUnreadCount();
+
+    @POST("/api/notifications/read_all")
+    Call<Void> readAllNotifications();
 }
