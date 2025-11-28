@@ -1,35 +1,38 @@
 package com.noworld.notemap.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.Intent;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.viewpager2.widget.ViewPager2;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.amap.apis.cluster.demo.RegionItem;
 import com.bumptech.glide.Glide;
 import com.noworld.notemap.R;
+import com.noworld.notemap.data.AliNoteRepository;
+import com.noworld.notemap.data.LikedStore;
+import com.noworld.notemap.data.TokenStore;
+import com.noworld.notemap.data.UserStore;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class NoteDetailActivity extends AppCompatActivity {
 
-    public static final String EXTRA_NOTE_DATA = "NOTE_DATA"; // Intent Key
+    public static final String EXTRA_NOTE_DATA = "NOTE_DATA";
     private RegionItem mNote;
 
-    // --- 顶部原有控件 ---
     private Toolbar toolbar;
     private ViewPager2 vpDetailPhotos;
     private TextView tvPhotoIndicator;
@@ -38,16 +41,23 @@ public class NoteDetailActivity extends AppCompatActivity {
     private TextView tvDetailType;
     private TextView tvDetailLocation;
 
-    // --- 作者信息控件 ---
     private ImageView ivDetailAvatar;
     private TextView tvDetailAuthor;
 
-    // --- 底部互动栏和评论区控件 ---
-    private TextView tvDetailTime;      // 发布时间
-    private RecyclerView rvComments;    // 评论列表
-    private TextView tvInputComment;    // 底部输入框
-    private TextView tvLikeCount;       // 底部点赞数
-    private TextView tvCommentCount;    // 底部评论数
+    private TextView tvDetailTime;
+    private RecyclerView rvComments;
+    private TextView tvInputComment;
+
+    // 【新增】点赞相关的控件和仓库
+    private LinearLayout layoutLike; // 点赞的点击区域
+    private ImageView ivDetailLike;  // 点赞图标
+    private TextView tvLikeCount;    // 点赞数字
+    private TextView tvCommentCount;
+
+    private AliNoteRepository noteRepository;
+    private LikedStore likedStore;
+    private UserStore userStore;
+    private TokenStore tokenStore;
 
     private final List<String> photoUrls = new ArrayList<>();
     private int currentIndex = 0;
@@ -57,17 +67,20 @@ public class NoteDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_note_detail);
 
-        // 1. 接收传递过来的笔记数据
+        // 1. 初始化数据仓库
+        noteRepository = AliNoteRepository.getInstance(this);
+        likedStore = LikedStore.getInstance(this);
+        userStore = UserStore.getInstance(this);
+        tokenStore = TokenStore.getInstance(this);
+
         if (getIntent().hasExtra(EXTRA_NOTE_DATA)) {
             mNote = (RegionItem) getIntent().getSerializableExtra(EXTRA_NOTE_DATA);
         }
 
-        // 2. 初始化 View
         initView();
         initToolbar();
         initEvent();
 
-        // 3. 填充数据
         if (mNote != null) {
             populateData();
         } else {
@@ -90,6 +103,10 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvDetailTime = findViewById(R.id.tv_detail_time);
         rvComments = findViewById(R.id.rv_comments);
         tvInputComment = findViewById(R.id.tv_input_comment);
+
+        // 绑定底部互动栏
+        layoutLike = findViewById(R.id.layout_like); // 整个点击区域
+        ivDetailLike = findViewById(R.id.iv_detail_like);
         tvLikeCount = findViewById(R.id.tv_detail_like_count);
         tvCommentCount = findViewById(R.id.tv_detail_comment_count);
 
@@ -113,40 +130,37 @@ public class NoteDetailActivity extends AppCompatActivity {
                 Toast.makeText(this, "点击了评论框", Toast.LENGTH_SHORT).show();
             });
         }
+
+        // 【新增】点赞点击事件
+        if (layoutLike != null) {
+            layoutLike.setOnClickListener(v -> handleLikeClick());
+        }
     }
 
     private void populateData() {
-        // 1. 填充文本信息
         tvDetailTitle.setText(mNote.getTitle());
         tvDetailDescription.setText(mNote.getDescription());
         tvDetailType.setText(mNote.getNoteType() != null ? "#" + mNote.getNoteType() : "#推荐");
         tvDetailLocation.setText(mNote.getLocationName());
 
-        // 2. 填充作者信息
         if (tvDetailAuthor != null) {
             tvDetailAuthor.setText(mNote.getAuthorName());
         }
-
-        // 【核心修改1】作者头像圆形裁剪
         if (ivDetailAvatar != null) {
             Glide.with(this)
                     .load(mNote.getAuthorAvatarUrl())
-                    .placeholder(R.drawable.ic_profile) // 建议换成默认头像图，而不是车
+                    .placeholder(R.drawable.ic_profile)
                     .error(R.drawable.ic_profile)
-                    .circleCrop() // 【这里已经是圆形了】
-                    .into(ivDetailAvatar);
+                    .into(ivDetailAvatar); // XML里已经有 CardView 包裹了，这里不需要 circleCrop
         }
 
-        // 3. 填充时间
         if (tvDetailTime != null) {
             String time = mNote.getCreateTime();
             tvDetailTime.setText("发布于 " + (time != null ? time : "2023-11-27"));
         }
 
-        // 4. 填充数据
-        if (tvLikeCount != null) {
-            tvLikeCount.setText(String.valueOf(mNote.getLikeCount()));
-        }
+        // 【核心】初始化点赞状态
+        refreshLikeState();
 
         photoUrls.clear();
         if (mNote.getImageUrls() != null && !mNote.getImageUrls().isEmpty()) {
@@ -159,16 +173,80 @@ public class NoteDetailActivity extends AppCompatActivity {
         }
         setupViewPager();
 
-        // 5. 加载评论
         loadComments();
+    }
+
+    // 【新增】刷新点赞图标和数字
+    private void refreshLikeState() {
+        if (mNote == null) return;
+
+        // 1. 检查本地数据库是否已点赞
+        String uid = userStore.extractUidFromToken(tokenStore.getToken());
+        if (uid == null) uid = userStore.getUid();
+
+        Set<String> likedIds = likedStore.getLikedIds(uid);
+        boolean isLiked = likedIds.contains(mNote.getNoteId());
+        mNote.setLikedByCurrentUser(isLiked);
+
+        // 2. 检查本地是否有最新的点赞数缓存
+        Integer storedCount = likedStore.getLikeCount(mNote.getNoteId());
+        if (storedCount != null) {
+            mNote.setLikeCount(storedCount);
+        }
+
+        // 3. 更新 UI
+        tvLikeCount.setText(String.valueOf(mNote.getLikeCount()));
+        ivDetailLike.setImageResource(isLiked ? R.drawable.ic_like_filled : R.drawable.ic_like);
+    }
+
+    // 【新增】处理点赞逻辑
+    private void handleLikeClick() {
+        // 1. 检查登录
+        if (tokenStore.getToken() == null || tokenStore.getToken().isEmpty()) {
+            Toast.makeText(this, "请先登录", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, LoginActivity.class));
+            return;
+        }
+
+        // 2. 调用后端接口
+        noteRepository.toggleLike(mNote, new AliNoteRepository.LikeCallback() {
+            @Override
+            public void onResult(boolean liked, int likeCount) {
+                // 3. 更新内存对象
+                mNote.setLikedByCurrentUser(liked);
+                mNote.setLikeCount(likeCount);
+
+                // 4. 更新本地存储 (保证返回列表页时状态同步)
+                String uid = userStore.extractUidFromToken(tokenStore.getToken());
+                likedStore.toggle(uid, mNote.getNoteId(), liked);
+                likedStore.saveLikeCount(mNote.getNoteId(), likeCount);
+
+                // 5. 更新 UI
+                runOnUiThread(() -> {
+                    tvLikeCount.setText(String.valueOf(likeCount));
+                    ivDetailLike.setImageResource(liked ? R.drawable.ic_like_filled : R.drawable.ic_like);
+                });
+            }
+
+            @Override
+            public void onRequireLogin() {
+                runOnUiThread(() -> {
+                    Toast.makeText(NoteDetailActivity.this, "登录已过期", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(NoteDetailActivity.this, LoginActivity.class));
+                });
+            }
+
+            @Override
+            public void onError(@NonNull Throwable e) {
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "操作失败: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        });
     }
 
     private void loadComments() {
         List<CommentItem> comments = new ArrayList<>();
         comments.add(new CommentItem("爱吃猫的鱼", "这个地方真不错！我也想去。", "10分钟前"));
         comments.add(new CommentItem("旅行家Bob", "拍得真好，请问是用什么相机拍的？", "2小时前"));
-        comments.add(new CommentItem("路人甲", "已收藏，下次去打卡。", "1天前"));
-        comments.add(new CommentItem("摄影师David", "构图很棒！", "2天前"));
 
         CommentAdapter adapter = new CommentAdapter(comments);
         if (rvComments != null) {
@@ -218,7 +296,6 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvPhotoIndicator.setText((position + 1) + "/" + photoUrls.size());
     }
 
-    // --- 内部类：图片轮播 ---
     private static class PhotoPagerAdapter extends RecyclerView.Adapter<PhotoPagerAdapter.PhotoVH> {
         private final List<String> data;
         private final Runnable onClick;
@@ -230,9 +307,11 @@ public class NoteDetailActivity extends AppCompatActivity {
 
         @NonNull
         @Override
-        public PhotoVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        public PhotoVH onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
             ImageView iv = new ImageView(parent.getContext());
-            iv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            iv.setLayoutParams(new android.view.ViewGroup.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT));
             iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
             return new PhotoVH(iv, onClick);
         }
@@ -259,8 +338,4 @@ public class NoteDetailActivity extends AppCompatActivity {
             }
         }
     }
-
-    // --- 内部类：评论模型 ---
-
-
 }
