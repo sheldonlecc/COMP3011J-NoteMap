@@ -98,10 +98,18 @@ public class AliNoteRepository {
                 String uid = getCurrentUid();
                 Set<String> likedIds = likedStore.getLikedIds(uid);
 
-                // 【纯净模式】直接使用后端返回的数据，不做任何修改
+                // 【已修改】确保 RegionItem 获得作者ID和私密状态
                 for (MapNoteResponse r : response.body()) {
                     MapNote note = MapNote.fromResponse(r);
                     RegionItem regionItem = note.toRegionItem();
+
+                    // 确保 RegionItem 得到作者ID和私密状态
+                    // 假设 MapNoteResponse 包含 authorId 和 isPrivate 字段
+                    // 并且 MapNote.fromResponse 已经将它们赋给了 note
+                    // 这里只需要确保 RegionItem 接收到它们
+
+                    // *如果 RegionItem 的 setAuthorId 和 setPrivate 缺失*
+                    // *这将在 MapNote.toRegionItem() 中解决，但为确保兼容性，先依赖 MapNote*
 
                     if (likedIds.contains(regionItem.getNoteId())) {
                         regionItem.setLikedByCurrentUser(true);
@@ -139,10 +147,13 @@ public class AliNoteRepository {
                 String uid = getCurrentUid();
                 Set<String> likedIds = likedStore.getLikedIds(uid);
 
-                // 【纯净模式】直接使用后端返回的数据
+                // 【已修改】直接使用后端返回的数据
                 for (MapNoteResponse r : response.body()) {
                     MapNote note = MapNote.fromResponse(r);
-                    RegionItem regionItem = note.toRegionItem(); // 确保这里面传递了 authorName
+                    RegionItem regionItem = note.toRegionItem();
+
+                    // 确保 RegionItem 获得作者ID和私密状态
+                    // 与 fetchNotes 类似，确保 MapNote.fromResponse(r) 成功映射了 r.authorId
 
                     if (likedIds.contains(regionItem.getNoteId())) {
                         regionItem.setLikedByCurrentUser(true);
@@ -367,5 +378,66 @@ public class AliNoteRepository {
             return uid;
         }
         return "guest";
+    }
+
+    // === 新增：删除笔记 ===
+    public void deleteNote(String noteId, SimpleCallback callback) {
+        api.deleteNote(noteId).enqueue(new retrofit2.Callback<Void>() {
+            @Override
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                if (response.isSuccessful()) {
+                    callback.onSuccess();
+                } else {
+                    callback.onError(new Exception("删除失败: " + response.code()));
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                callback.onError(t);
+            }
+        });
+    }
+
+    // === 新增：修改笔记可见性 (公开/私密) ===
+    public void setNotePrivacy(String noteId, boolean isPrivate, SimpleCallback callback) {
+        com.noworld.notemap.data.dto.UpdateNoteRequest request =
+                new com.noworld.notemap.data.dto.UpdateNoteRequest(isPrivate);
+
+        api.updateNote(noteId, request).enqueue(new retrofit2.Callback<Void>() {
+            @Override
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                if (response.isSuccessful()) {
+                    callback.onSuccess();
+                } else {
+                    callback.onError(new Exception("设置失败: " + response.code()));
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                callback.onError(t);
+            }
+        });
+    }
+
+    // === 新增：修改笔记内容 (标题和描述) ===
+    public void updateNote(String noteId, com.noworld.notemap.data.dto.UpdateNoteRequest request, SimpleCallback callback) {
+        // 注意：这里我们重用了 updateNote 接口，后端应能识别请求体内容并只更新相应字段
+        api.updateNote(noteId, request).enqueue(new retrofit2.Callback<Void>() {
+            @Override
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                if (response.isSuccessful()) {
+                    callback.onSuccess();
+                } else {
+                    callback.onError(new Exception("更新失败: " + response.code()));
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                callback.onError(t);
+            }
+        });
     }
 }

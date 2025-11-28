@@ -1,9 +1,10 @@
 package com.noworld.notemap.ui;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -48,10 +49,9 @@ public class NoteDetailActivity extends AppCompatActivity {
     private RecyclerView rvComments;
     private TextView tvInputComment;
 
-    // 【新增】点赞相关的控件和仓库
-    private LinearLayout layoutLike; // 点赞的点击区域
-    private ImageView ivDetailLike;  // 点赞图标
-    private TextView tvLikeCount;    // 点赞数字
+    private LinearLayout layoutLike;
+    private ImageView ivDetailLike;
+    private TextView tvLikeCount;
     private TextView tvCommentCount;
 
     private AliNoteRepository noteRepository;
@@ -62,12 +62,14 @@ public class NoteDetailActivity extends AppCompatActivity {
     private final List<String> photoUrls = new ArrayList<>();
     private int currentIndex = 0;
 
+    // 【新增】标记当前用户是否是作者
+    private boolean isAuthor = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_note_detail);
 
-        // 1. 初始化数据仓库
         noteRepository = AliNoteRepository.getInstance(this);
         likedStore = LikedStore.getInstance(this);
         userStore = UserStore.getInstance(this);
@@ -82,11 +84,145 @@ public class NoteDetailActivity extends AppCompatActivity {
         initEvent();
 
         if (mNote != null) {
+            checkIsAuthor(); // 检查权限
             populateData();
         } else {
             Toast.makeText(this, "加载笔记数据失败", Toast.LENGTH_SHORT).show();
         }
     }
+
+    private void checkIsAuthor() {
+        String currentUid = userStore.extractUidFromToken(tokenStore.getToken());
+        if (currentUid == null) currentUid = userStore.getUid();
+
+        // 比较当前用户ID和作者ID
+        // 注意：RegionItem 里的 authorId 可能是 String
+        if (currentUid != null && mNote.getAuthorId() != null) {
+            isAuthor = currentUid.equals(mNote.getAuthorId());
+        }
+
+        // 【请临时添加这一行代码来调试】
+        Toast.makeText(this, "我是作者吗? " + isAuthor +
+                " (我的ID: " + currentUid + " 笔记ID: " + mNote.getAuthorId() + ")", Toast.LENGTH_LONG).show();
+        // 【调试完成后请删除】
+
+        // 调用 invalidateOptionsMenu 会触发 onCreateOptionsMenu 重新绘制菜单
+        invalidateOptionsMenu();
+    }
+
+    // ===========================================
+    // 【核心新增】菜单处理逻辑
+    // ===========================================
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // 只有作者本人才能看到这三个点
+        if (isAuthor) {
+            getMenuInflater().inflate(R.menu.menu_note_detail, menu);
+            return true;
+        }
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // 动态改变菜单文字
+        if (isAuthor) {
+            MenuItem privacyItem = menu.findItem(R.id.action_privacy);
+            if (privacyItem != null) {
+                if (mNote.isPrivate()) {
+                    privacyItem.setTitle("设为公开笔记");
+                } else {
+                    privacyItem.setTitle("设为仅自己可见");
+                }
+            }
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        } else if (item.getItemId() == R.id.action_privacy) {
+            handleTogglePrivacy();
+            return true;
+        } else if (item.getItemId() == R.id.action_delete) {
+            handleDeleteNote();
+            return true;
+        } else if (item.getItemId() == R.id.action_edit) {
+            handleEditNote();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    // 处理：修改可见性
+    private void handleTogglePrivacy() {
+        boolean newStatus = !mNote.isPrivate(); // 目标状态
+        noteRepository.setNotePrivacy(mNote.getNoteId(), newStatus, new AliNoteRepository.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                runOnUiThread(() -> {
+                    mNote.setPrivate(newStatus);
+                    // 刷新菜单文字
+                    invalidateOptionsMenu();
+                    String msg = newStatus ? "已设为仅自己可见" : "已设为公开";
+                    Toast.makeText(NoteDetailActivity.this, msg, Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "设置失败: " + t.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    // 处理：删除笔记
+    private void handleDeleteNote() {
+        new AlertDialog.Builder(this)
+                .setTitle("删除笔记")
+                .setMessage("确定要删除这条笔记吗？删除后不可恢复。")
+                .setPositiveButton("删除", (dialog, which) -> {
+                    noteRepository.deleteNote(mNote.getNoteId(), new AliNoteRepository.SimpleCallback() {
+                        @Override
+                        public void onSuccess() {
+                            runOnUiThread(() -> {
+                                Toast.makeText(NoteDetailActivity.this, "删除成功", Toast.LENGTH_SHORT).show();
+                                finish(); // 关闭详情页，返回列表
+                            });
+                        }
+
+                        @Override
+                        public void onError(Throwable t) {
+                            runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "删除失败: " + t.getMessage(), Toast.LENGTH_SHORT).show());
+                        }
+                    });
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    // 处理：修改笔记内容
+    private void handleEditNote() {
+        if (mNote == null) return;
+
+        Intent intent = new Intent(this, AddNoteActivity.class);
+
+        // 【关键】传递当前的笔记数据，告诉 AddNoteActivity 进入编辑模式
+        intent.putExtra(AddNoteActivity.EXTRA_EDIT_NOTE_DATA, mNote);
+
+        // 使用 startActivityForResult 或 ActivityResultLauncher 来等待编辑结果
+        // 确保编辑完成后，当前详情页能刷新
+        startActivity(intent); // 简化处理，暂时直接启动
+
+        // ⚠️ 最佳实践：此处应使用 ActivityResultLauncher
+        // 待您确认功能可用后，可以替换为 ActivityResultLauncher 并在 onResume 刷新数据
+    }
+
+    // ===========================================
 
     private void initView() {
         toolbar = findViewById(R.id.toolbar_note_detail);
@@ -104,8 +240,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         rvComments = findViewById(R.id.rv_comments);
         tvInputComment = findViewById(R.id.tv_input_comment);
 
-        // 绑定底部互动栏
-        layoutLike = findViewById(R.id.layout_like); // 整个点击区域
+        layoutLike = findViewById(R.id.layout_like);
         ivDetailLike = findViewById(R.id.iv_detail_like);
         tvLikeCount = findViewById(R.id.tv_detail_like_count);
         tvCommentCount = findViewById(R.id.tv_detail_comment_count);
@@ -130,8 +265,6 @@ public class NoteDetailActivity extends AppCompatActivity {
                 Toast.makeText(this, "点击了评论框", Toast.LENGTH_SHORT).show();
             });
         }
-
-        // 【新增】点赞点击事件
         if (layoutLike != null) {
             layoutLike.setOnClickListener(v -> handleLikeClick());
         }
@@ -151,7 +284,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                     .load(mNote.getAuthorAvatarUrl())
                     .placeholder(R.drawable.ic_profile)
                     .error(R.drawable.ic_profile)
-                    .into(ivDetailAvatar); // XML里已经有 CardView 包裹了，这里不需要 circleCrop
+                    .into(ivDetailAvatar);
         }
 
         if (tvDetailTime != null) {
@@ -159,7 +292,6 @@ public class NoteDetailActivity extends AppCompatActivity {
             tvDetailTime.setText("发布于 " + (time != null ? time : "2023-11-27"));
         }
 
-        // 【核心】初始化点赞状态
         refreshLikeState();
 
         photoUrls.clear();
@@ -176,11 +308,8 @@ public class NoteDetailActivity extends AppCompatActivity {
         loadComments();
     }
 
-    // 【新增】刷新点赞图标和数字
     private void refreshLikeState() {
         if (mNote == null) return;
-
-        // 1. 检查本地数据库是否已点赞
         String uid = userStore.extractUidFromToken(tokenStore.getToken());
         if (uid == null) uid = userStore.getUid();
 
@@ -188,40 +317,32 @@ public class NoteDetailActivity extends AppCompatActivity {
         boolean isLiked = likedIds.contains(mNote.getNoteId());
         mNote.setLikedByCurrentUser(isLiked);
 
-        // 2. 检查本地是否有最新的点赞数缓存
         Integer storedCount = likedStore.getLikeCount(mNote.getNoteId());
         if (storedCount != null) {
             mNote.setLikeCount(storedCount);
         }
 
-        // 3. 更新 UI
         tvLikeCount.setText(String.valueOf(mNote.getLikeCount()));
         ivDetailLike.setImageResource(isLiked ? R.drawable.ic_like_filled : R.drawable.ic_like);
     }
 
-    // 【新增】处理点赞逻辑
     private void handleLikeClick() {
-        // 1. 检查登录
         if (tokenStore.getToken() == null || tokenStore.getToken().isEmpty()) {
             Toast.makeText(this, "请先登录", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, LoginActivity.class));
             return;
         }
 
-        // 2. 调用后端接口
         noteRepository.toggleLike(mNote, new AliNoteRepository.LikeCallback() {
             @Override
             public void onResult(boolean liked, int likeCount) {
-                // 3. 更新内存对象
                 mNote.setLikedByCurrentUser(liked);
                 mNote.setLikeCount(likeCount);
 
-                // 4. 更新本地存储 (保证返回列表页时状态同步)
                 String uid = userStore.extractUidFromToken(tokenStore.getToken());
                 likedStore.toggle(uid, mNote.getNoteId(), liked);
                 likedStore.saveLikeCount(mNote.getNoteId(), likeCount);
 
-                // 5. 更新 UI
                 runOnUiThread(() -> {
                     tvLikeCount.setText(String.valueOf(likeCount));
                     ivDetailLike.setImageResource(liked ? R.drawable.ic_like_filled : R.drawable.ic_like);
@@ -246,7 +367,6 @@ public class NoteDetailActivity extends AppCompatActivity {
     private void loadComments() {
         List<CommentItem> comments = new ArrayList<>();
         comments.add(new CommentItem("爱吃猫的鱼", "这个地方真不错！我也想去。", "10分钟前"));
-        comments.add(new CommentItem("旅行家Bob", "拍得真好，请问是用什么相机拍的？", "2小时前"));
 
         CommentAdapter adapter = new CommentAdapter(comments);
         if (rvComments != null) {
@@ -261,15 +381,6 @@ public class NoteDetailActivity extends AppCompatActivity {
         if (tvSectionTitle != null) {
             tvSectionTitle.setText("共 " + comments.size() + " 条评论");
         }
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 
     private void openFullImage() {

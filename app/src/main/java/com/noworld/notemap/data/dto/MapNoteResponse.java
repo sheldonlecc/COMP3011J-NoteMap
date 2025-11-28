@@ -27,4 +27,7 @@ public class MapNoteResponse {
     public String authorAvatarUrl;
 
     public int likeCount;
+
+    // 【新增字段】
+    public boolean isPrivate; // 对应后端返回的 is_private
 }

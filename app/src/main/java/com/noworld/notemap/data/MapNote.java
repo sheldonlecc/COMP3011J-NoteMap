@@ -41,6 +41,8 @@ public class MapNote {
     private int likeCount;
     private long timestamp;
 
+    private boolean isPrivate;
+
     public MapNote() {
     }
 
@@ -74,6 +76,9 @@ public class MapNote {
         note.authorName = response.authorName;
         note.authorAvatarUrl = response.authorAvatarUrl;
         note.likeCount = response.likeCount;
+
+        // 【fromResponse 赋值】
+        note.isPrivate = response.isPrivate;
         return note;
     }
 
@@ -104,6 +109,12 @@ public class MapNote {
                 locationName
         );
         item.setImageUrls(imageUrls);
+
+        // 【toRegionItem 赋值】
+        // 关键：将状态传递给 RegionItem
+        item.setAuthorId(authorId);
+        item.setPrivate(isPrivate); // 调用 RegionItem 的 setPrivate 方法
+
         return item;
     }
 
@@ -158,4 +169,15 @@ public class MapNote {
     public void setLikeCount(int likeCount) {
         this.likeCount = Math.max(0, likeCount);
     }
+
+    // 【新增 Getter】
+    public boolean isPrivate() {
+        return isPrivate;
+    }
+
+    // 【新增 Setter】
+    public void setPrivate(boolean isPrivate) {
+        this.isPrivate = isPrivate;
+    }
+
 }

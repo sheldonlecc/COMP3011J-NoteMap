@@ -32,6 +32,10 @@ public class RegionItem implements ClusterItem, Serializable {
     // 4. 【关键新增】发布时间字段 (解决报错的核心)
     private String createTime;
 
+    private boolean isPrivate;
+
+    private String authorId;
+
     // 构造函数
     public RegionItem(LatLng latLng, String noteId, String title, String photoUrl,
                       String authorName, String authorAvatarUrl, int likeCount,
@@ -104,5 +108,31 @@ public class RegionItem implements ClusterItem, Serializable {
     }
     public void setAuthorName(String authorName) {
         this.authorName = authorName;
+    }
+
+    // 【新增】Getter 和 Setter
+    public boolean isPrivate() {
+        return isPrivate;
+    }
+
+    public void setPrivate(boolean isPrivate) {
+        this.isPrivate = isPrivate;
+    }
+
+    public String getAuthorId() {
+        return authorId;
+    }
+
+    // 3. 添加 setAuthorId() 方法 (用于解析 JSON 时设置值)
+    public void setAuthorId(String authorId) {
+        this.authorId = authorId;
+    }
+
+    public double getLatitude() {
+        return getPosition().latitude;
+    }
+
+    public double getLongitude() {
+        return getPosition().longitude;
     }
 }

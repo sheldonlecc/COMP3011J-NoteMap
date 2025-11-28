@@ -19,6 +19,8 @@ import retrofit2.http.GET;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
+import retrofit2.http.PUT;
+import retrofit2.http.DELETE;
 
 public interface  ApiService {
 
@@ -45,4 +47,14 @@ public interface  ApiService {
 
     @POST("/api/auth/update")
     Call<UpdateProfileResponse> updateProfile(@Body UpdateProfileRequest request);
+
+    // ... 原有的代码 ...
+
+    // 【新增】修改笔记 (内容 或 可见性)
+    @PUT("/api/notes/{id}")
+    Call<Void> updateNote(@Path("id") String id, @Body com.noworld.notemap.data.dto.UpdateNoteRequest request);
+
+    // 【新增】删除笔记
+    @DELETE("/api/notes/{id}")
+    Call<Void> deleteNote(@Path("id") String id);
 }
