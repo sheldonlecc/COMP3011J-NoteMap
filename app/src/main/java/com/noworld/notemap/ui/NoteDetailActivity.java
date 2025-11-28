@@ -1,10 +1,22 @@
 package com.noworld.notemap.ui;
 
+import android.Manifest;
 import android.app.AlertDialog;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -13,6 +25,8 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
@@ -32,6 +46,7 @@ import java.util.Set;
 public class NoteDetailActivity extends AppCompatActivity {
 
     public static final String EXTRA_NOTE_DATA = "NOTE_DATA";
+
     private RegionItem mNote;
 
     private Toolbar toolbar;
@@ -389,6 +404,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         if (photoUrl == null || photoUrl.isEmpty()) return;
         Intent intent = new Intent(this, PictureActivity.class);
         intent.putExtra(PictureActivity.EXTRA_IMAGE_URL, photoUrl);
+        intent.putExtra(PictureActivity.EXTRA_AUTHOR_NAME, mNote.getAuthorName());
         startActivity(intent);
     }
 
@@ -408,7 +424,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvPhotoIndicator.setText((position + 1) + "/" + photoUrls.size());
     }
 
-    private static class PhotoPagerAdapter extends RecyclerView.Adapter<PhotoPagerAdapter.PhotoVH> {
+    private class PhotoPagerAdapter extends RecyclerView.Adapter<PhotoPagerAdapter.PhotoVH> {
         private final List<String> data;
         private final Runnable onClick;
 
@@ -432,28 +448,33 @@ public class NoteDetailActivity extends AppCompatActivity {
             // 可选：设置一个背景色（比如黑色或灰色），这样如果图片比例和容器不一样，留白部分不会太突兀
             // iv.setBackgroundColor(android.graphics.Color.BLACK);
 
-            return new PhotoVH(iv, onClick);
+            return new PhotoVH(iv);
         }
 
         @Override
         public void onBindViewHolder(@NonNull PhotoVH holder, int position) {
             String url = data.get(position);
-            Glide.with(holder.iv.getContext())
+            Glide.with(holder.imageView.getContext())
                     .load(url)
                     .placeholder(R.drawable.ic_car)
                     .error(R.drawable.ic_car)
-                    .into(holder.iv);
+                    .into(holder.imageView);
         }
 
         @Override
         public int getItemCount() { return data.size(); }
 
-        static class PhotoVH extends RecyclerView.ViewHolder {
-            ImageView iv;
-            PhotoVH(@NonNull ImageView itemView, Runnable onClick) {
+        class PhotoVH extends RecyclerView.ViewHolder {
+            public ImageView imageView;
+            public PhotoVH(@NonNull ImageView itemView) {
                 super(itemView);
-                this.iv = itemView;
-                itemView.setOnClickListener(v -> { if (onClick != null) onClick.run(); });
+                this.imageView = itemView;
+
+                // 【最终修正：恢复原始的点击逻辑】
+                itemView.setOnClickListener(v -> {
+                    // 核心：调用 PhotoPagerAdapter 构造函数中传入的 Runnable (即 openFullImage())
+                    PhotoPagerAdapter.this.onClick.run();
+                });
             }
         }
     }
