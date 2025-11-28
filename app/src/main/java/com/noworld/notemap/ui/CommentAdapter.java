@@ -16,9 +16,14 @@ import java.util.List;
 public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.VH> {
 
     private final List<CommentItem> data;
+    private OnCommentActionListener listener;
 
     public CommentAdapter(List<CommentItem> data) {
         this.data = data;
+    }
+
+    public void setOnCommentActionListener(OnCommentActionListener listener) {
+        this.listener = listener;
     }
 
     public void updateData(List<CommentItem> newData) {
@@ -39,6 +44,28 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.VH> {
         notifyItemInserted(0);
     }
 
+    public void addReplyAfterParent(CommentItem reply) {
+        if (reply == null) return;
+        if (!reply.isReply()) {
+            addCommentToTop(reply);
+            return;
+        }
+        int parentIndex = -1;
+        for (int i = 0; i < data.size(); i++) {
+            if (reply.getParentId() != null && reply.getParentId().equals(data.get(i).getId())) {
+                parentIndex = i;
+                break;
+            }
+        }
+        if (parentIndex >= 0) {
+            int insertPos = Math.min(parentIndex + 1, data.size());
+            data.add(insertPos, reply);
+            notifyItemInserted(insertPos);
+        } else {
+            addCommentToTop(reply);
+        }
+    }
+
     @NonNull
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -50,8 +77,25 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.VH> {
     public void onBindViewHolder(@NonNull VH holder, int position) {
         CommentItem item = data.get(position);
         holder.tvUser.setText(item.getUserName());
-        holder.tvContent.setText(item.getContent());
+        // 显示“回复 xxx：内容”
+        if (item.getReplyToUserName() != null && !item.getReplyToUserName().isEmpty()) {
+            holder.tvContent.setText("回复 " + item.getReplyToUserName() + "：" + item.getContent());
+        } else {
+            holder.tvContent.setText(item.getContent());
+        }
         holder.tvTime.setText(item.getTime());
+
+        // 二级评论缩进
+        ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) holder.itemView.getLayoutParams();
+        if (lp != null) {
+            int indent = 0;
+            if (item.isReply()) {
+                float density = holder.itemView.getResources().getDisplayMetrics().density;
+                indent = (int) (16 * density);
+            }
+            lp.leftMargin = indent;
+            holder.itemView.setLayoutParams(lp);
+        }
 
         // 3. 【核心修改】使用 Glide 加载头像并裁剪为圆形
         Glide.with(holder.itemView.getContext())
@@ -60,6 +104,12 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.VH> {
                 .error(R.drawable.ic_profile)       // 错误时显示的图
                 .circleCrop()                       // 【重点】强制变成圆形
                 .into(holder.ivAvatar);
+
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onReply(item);
+            }
+        });
     }
 
     @Override
@@ -78,5 +128,9 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.VH> {
             // 5. 绑定 XML 里的头像 ID (通常是 iv_comment_avatar)
             ivAvatar = v.findViewById(R.id.iv_comment_avatar);
         }
+    }
+
+    public interface OnCommentActionListener {
+        void onReply(CommentItem item);
     }
 }

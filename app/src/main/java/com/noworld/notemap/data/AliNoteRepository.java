@@ -405,13 +405,13 @@ public class AliNoteRepository {
         });
     }
 
-    public void addComment(String noteId, String content, AddCommentCallback callback) {
+    public void addComment(String noteId, String content, String parentId, AddCommentCallback callback) {
         String token = tokenStore.getToken();
         if (token == null || token.isEmpty()) {
             callback.onRequireLogin();
             return;
         }
-        api.addComment(noteId, new AddCommentRequest(content)).enqueue(new Callback<CommentResponse>() {
+        api.addComment(noteId, new AddCommentRequest(content, parentId)).enqueue(new Callback<CommentResponse>() {
             @Override
             public void onResponse(@NonNull Call<CommentResponse> call, @NonNull Response<CommentResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
@@ -430,14 +430,20 @@ public class AliNoteRepository {
         });
     }
 
+    public void addComment(String noteId, String content, AddCommentCallback callback) {
+        addComment(noteId, content, null, callback);
+    }
+
     private CommentItem mapToCommentItem(CommentResponse resp) {
-        if (resp == null) return new CommentItem("", "未知用户", "", "", null);
+        if (resp == null) return new CommentItem("", "未知用户", "", "", null, null, null);
         return new CommentItem(
                 resp.id != null ? resp.id : "",
                 resp.userName != null ? resp.userName : "地图用户",
                 resp.content != null ? resp.content : "",
                 resp.createdAt != null ? resp.createdAt : "",
-                resp.avatarUrl
+                resp.avatarUrl,
+                resp.parentId,
+                resp.replyToUserName
         );
     }
 

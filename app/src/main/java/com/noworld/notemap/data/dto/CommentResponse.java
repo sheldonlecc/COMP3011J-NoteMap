@@ -17,4 +17,10 @@ public class CommentResponse {
 
     @SerializedName(value = "createdAt", alternate = {"createTime", "time"})
     public String createdAt;
+
+    @SerializedName(value = "parentId", alternate = {"parent_id"})
+    public String parentId;
+
+    @SerializedName(value = "replyToUserName", alternate = {"replyTo", "reply_to_user_name", "replyUserName"})
+    public String replyToUserName;
 }

@@ -84,6 +84,7 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     private final List<CommentItem> comments = new ArrayList<>();
     private CommentAdapter commentAdapter;
+    private CommentItem replyTarget;
 
     // 【新增】标记当前用户是否是作者
     private boolean isAuthor = false;
@@ -269,6 +270,7 @@ public class NoteDetailActivity extends AppCompatActivity {
             rvComments.setLayoutManager(new LinearLayoutManager(this));
             rvComments.setNestedScrollingEnabled(false);
             commentAdapter = new CommentAdapter(comments);
+            commentAdapter.setOnCommentActionListener(this::onReplyClicked);
             rvComments.setAdapter(commentAdapter);
         }
     }
@@ -396,7 +398,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     comments.clear();
                     if (list != null) {
-                        comments.addAll(list);
+                        comments.addAll(buildDisplayList(list));
                     }
                     if (commentAdapter != null) {
                         commentAdapter.updateData(comments);
@@ -422,6 +424,35 @@ public class NoteDetailActivity extends AppCompatActivity {
         }
     }
 
+    private List<CommentItem> buildDisplayList(List<CommentItem> original) {
+        List<CommentItem> parents = new ArrayList<>();
+        List<CommentItem> replies = new ArrayList<>();
+        for (CommentItem item : original) {
+            if (item.isReply()) {
+                replies.add(item);
+            } else {
+                parents.add(item);
+            }
+        }
+        List<CommentItem> result = new ArrayList<>();
+        result.addAll(parents);
+        for (CommentItem reply : replies) {
+            int parentIndex = -1;
+            for (int i = 0; i < result.size(); i++) {
+                if (reply.getParentId() != null && reply.getParentId().equals(result.get(i).getId())) {
+                    parentIndex = i;
+                    break;
+                }
+            }
+            if (parentIndex >= 0) {
+                result.add(parentIndex + 1, reply);
+            } else {
+                result.add(reply);
+            }
+        }
+        return result;
+    }
+
     private boolean ensureLoggedInForComment() {
         String token = tokenStore.getToken();
         if (token == null || token.isEmpty()) {
@@ -437,14 +468,15 @@ public class NoteDetailActivity extends AppCompatActivity {
         if (!ensureLoggedInForComment()) return;
 
         final EditText input = new EditText(this);
-        input.setHint("友善评论，理性发言");
+        String hint = replyTarget != null ? ("回复 " + replyTarget.getUserName()) : "友善评论，理性发言";
+        input.setHint(hint);
         int padding = (int) (getResources().getDisplayMetrics().density * 12);
         input.setPadding(padding, padding / 2, padding, padding / 2);
         input.setMinLines(1);
         input.setMaxLines(4);
 
         new AlertDialog.Builder(this)
-                .setTitle("发表评论")
+                .setTitle(replyTarget != null ? "回复评论" : "发表评论")
                 .setView(input)
                 .setPositiveButton("发送", (dialog, which) -> {
                     String content = input.getText().toString().trim();
@@ -460,20 +492,38 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     private void submitComment(String content) {
         if (mNote == null) return;
-        noteRepository.addComment(mNote.getNoteId(), content, new AliNoteRepository.AddCommentCallback() {
+        String parentId = replyTarget != null ? replyTarget.getId() : null;
+        noteRepository.addComment(mNote.getNoteId(), content, parentId, new AliNoteRepository.AddCommentCallback() {
             @Override
             public void onSuccess(CommentItem newComment) {
                 runOnUiThread(() -> {
+                    CommentItem displayItem = newComment;
+                    if (replyTarget != null && (newComment.getReplyToUserName() == null || newComment.getReplyToUserName().isEmpty())) {
+                        displayItem = new CommentItem(
+                                newComment.getId(),
+                                newComment.getUserName(),
+                                newComment.getContent(),
+                                newComment.getTime(),
+                                newComment.getAvatarUrl(),
+                                replyTarget.getId(),
+                                replyTarget.getUserName()
+                        );
+                    }
                     if (commentAdapter != null) {
-                        commentAdapter.addCommentToTop(newComment);
+                        if (replyTarget != null) {
+                            commentAdapter.addReplyAfterParent(displayItem);
+                        } else {
+                            commentAdapter.addCommentToTop(displayItem);
+                        }
                     } else {
-                        comments.add(0, newComment);
+                        comments.add(0, displayItem);
                     }
                     updateCommentCounter();
                     if (rvComments != null) {
                         rvComments.scrollToPosition(0);
                     }
                     Toast.makeText(NoteDetailActivity.this, "评论成功", Toast.LENGTH_SHORT).show();
+                    replyTarget = null;
                 });
             }
 
@@ -482,6 +532,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     Toast.makeText(NoteDetailActivity.this, "登录已过期，请重新登录", Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(NoteDetailActivity.this, LoginActivity.class));
+                    replyTarget = null;
                 });
             }
 
@@ -490,6 +541,11 @@ public class NoteDetailActivity extends AppCompatActivity {
                 runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "评论失败: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
             }
         });
+    }
+
+    private void onReplyClicked(CommentItem item) {
+        this.replyTarget = item;
+        showCommentDialog();
     }
 
     private void openFullImage() {
