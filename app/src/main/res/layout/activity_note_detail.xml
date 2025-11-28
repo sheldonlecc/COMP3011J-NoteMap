@@ -28,7 +28,7 @@
             <androidx.viewpager2.widget.ViewPager2
                 android:id="@+id/vp_detail_photos"
                 android:layout_width="match_parent"
-                android:layout_height="300dp" />
+                android:layout_height="400dp" />
 
             <TextView
                 android:id="@+id/tv_photo_indicator"

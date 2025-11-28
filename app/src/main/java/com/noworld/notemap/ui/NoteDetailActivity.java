@@ -424,7 +424,14 @@ public class NoteDetailActivity extends AppCompatActivity {
             iv.setLayoutParams(new android.view.ViewGroup.LayoutParams(
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT));
-            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+            // 【核心修改】
+            // 原来是 CENTER_CROP (填满并裁切)，现在改为 FIT_CENTER (完整显示)
+            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+
+            // 可选：设置一个背景色（比如黑色或灰色），这样如果图片比例和容器不一样，留白部分不会太突兀
+            // iv.setBackgroundColor(android.graphics.Color.BLACK);
+
             return new PhotoVH(iv, onClick);
         }
 
