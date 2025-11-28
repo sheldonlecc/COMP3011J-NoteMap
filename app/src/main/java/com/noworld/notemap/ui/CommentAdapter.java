@@ -128,6 +128,12 @@ public class CommentAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 listener.onReply(item);
             }
         });
+        h.itemView.setOnLongClickListener(v -> {
+            if (listener != null) {
+                listener.onLongPress(item);
+            }
+            return true;
+        });
         h.layoutLike.setOnClickListener(v -> {
             if (listener != null) listener.onLike(item);
         });
@@ -174,5 +180,6 @@ public class CommentAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         void onReply(CommentItem item);
         void onToggleReplies(String parentId, boolean expand);
         void onLike(CommentItem item);
+        void onLongPress(CommentItem item);
     }
 }

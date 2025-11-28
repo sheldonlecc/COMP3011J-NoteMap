@@ -86,6 +86,14 @@ public class AliNoteRepository {
         void onError(@NonNull Throwable throwable);
     }
 
+    public interface CommentDeleteCallback {
+        void onSuccess();
+
+        void onRequireLogin();
+
+        void onError(@NonNull Throwable throwable);
+    }
+
     private static final String TAG = "AliNoteRepository";
     private static AliNoteRepository INSTANCE;
     private final ApiService api;
@@ -465,8 +473,33 @@ public class AliNoteRepository {
         });
     }
 
+    public void deleteComment(String commentId, CommentDeleteCallback callback) {
+        String token = tokenStore.getToken();
+        if (token == null || token.isEmpty()) {
+            callback.onRequireLogin();
+            return;
+        }
+        api.deleteComment(commentId).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                if (response.isSuccessful()) {
+                    callback.onSuccess();
+                } else if (response.code() == 401) {
+                    callback.onRequireLogin();
+                } else {
+                    callback.onError(new IllegalStateException("删除失败"));
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                callback.onError(t);
+            }
+        });
+    }
+
     private CommentItem mapToCommentItem(CommentResponse resp) {
-        if (resp == null) return new CommentItem("", "未知用户", "", "", null, null, null, 0, false);
+        if (resp == null) return new CommentItem("", "未知用户", "", "", null, null, null, null, 0, false);
         return new CommentItem(
                 resp.id != null ? resp.id : "",
                 resp.userName != null ? resp.userName : "地图用户",
@@ -475,6 +508,7 @@ public class AliNoteRepository {
                 resp.avatarUrl,
                 resp.parentId,
                 resp.replyToUserName,
+                resp.authorId,
                 resp.likeCount != null ? resp.likeCount : 0,
                 resp.liked != null && resp.liked
         );

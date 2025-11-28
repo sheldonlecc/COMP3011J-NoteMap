@@ -310,6 +310,9 @@ public class NoteDetailActivity extends AppCompatActivity {
 
                 @Override
                 public void onLike(CommentItem item) { onCommentLike(item); }
+
+                @Override
+                public void onLongPress(CommentItem item) { onCommentLongPress(item); }
             });
             rvComments.setAdapter(commentAdapter);
         }
@@ -516,6 +519,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                         null,
                         parent.getId(),
                         null,
+                        null,
                         0,
                         false,
                         true,
@@ -542,6 +546,75 @@ public class NoteDetailActivity extends AppCompatActivity {
         String t = pid.trim();
         if (t.isEmpty() || "0".equals(t) || "null".equalsIgnoreCase(t)) return null;
         return t;
+    }
+
+    private boolean isOwnComment(CommentItem item) {
+        if (item == null) return false;
+        String currentUid = userStore.extractUidFromToken(tokenStore.getToken());
+        if (currentUid == null) currentUid = userStore.getUid();
+        if (item.getAuthorId() != null && currentUid != null) {
+            return currentUid.equals(String.valueOf(item.getAuthorId()));
+        }
+        String currentName = userStore.getUsername();
+        return currentName != null && currentName.equals(item.getUserName());
+    }
+
+    private void onCommentLongPress(CommentItem item) {
+        if (!isOwnComment(item)) return;
+        new AlertDialog.Builder(this)
+                .setTitle("删除评论")
+                .setMessage("确定要删除这条评论吗？")
+                .setPositiveButton("删除", (d, w) -> deleteComment(item))
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void deleteComment(CommentItem item) {
+        noteRepository.deleteComment(item.getId(), new AliNoteRepository.CommentDeleteCallback() {
+            @Override
+            public void onSuccess() {
+                runOnUiThread(() -> {
+                    removeCommentById(item.getId());
+                    rebuildDisplayComments();
+                    Toast.makeText(NoteDetailActivity.this, "已删除", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onRequireLogin() {
+                runOnUiThread(() -> {
+                    Toast.makeText(NoteDetailActivity.this, "请先登录再删除", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(NoteDetailActivity.this, LoginActivity.class));
+                });
+            }
+
+            @Override
+            public void onError(@NonNull Throwable throwable) {
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "删除失败: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    private void removeCommentById(String id) {
+        if (id == null) return;
+        java.util.Iterator<CommentItem> it = rawComments.iterator();
+        while (it.hasNext()) {
+            CommentItem c = it.next();
+            String root = resolveRootParentId(c, toIdMap(rawComments));
+            if (id.equals(c.getId()) || id.equals(root)) {
+                it.remove();
+            }
+        }
+    }
+
+    private java.util.Map<String, CommentItem> toIdMap(List<CommentItem> list) {
+        java.util.Map<String, CommentItem> map = new java.util.HashMap<>();
+        for (CommentItem c : list) {
+            if (c.getId() != null) {
+                map.put(c.getId(), c);
+            }
+        }
+        return map;
     }
 
     private boolean ensureLoggedInForComment() {
@@ -617,6 +690,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                                 newComment.getAvatarUrl(),
                                 parentId,
                                 replyTarget.getUserName(),
+                                newComment.getAuthorId(),
                                 newComment.getLikeCount(),
                                 newComment.isLiked(),
                                 false,
@@ -688,6 +762,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                                     c.getAvatarUrl(),
                                     c.getParentId(),
                                     c.getReplyToUserName(),
+                                    c.getAuthorId(),
                                     likeCount,
                                     liked
                             ));

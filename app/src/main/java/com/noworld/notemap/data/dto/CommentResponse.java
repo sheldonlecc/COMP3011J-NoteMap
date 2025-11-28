@@ -29,4 +29,7 @@ public class CommentResponse {
 
     @SerializedName(value = "liked", alternate = {"isLiked"})
     public Boolean liked;
+
+    @SerializedName(value = "authorId", alternate = {"userId", "uid", "user_id"})
+    public String authorId;
 }

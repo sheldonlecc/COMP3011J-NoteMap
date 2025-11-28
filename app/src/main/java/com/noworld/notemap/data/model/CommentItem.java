@@ -11,22 +11,23 @@ public class CommentItem {
     private final String avatarUrl;
     private final String parentId;
     private final String replyToUserName;
+    private final String authorId;
     private final int likeCount;
     private final boolean liked;
     private final boolean isMoreIndicator;
     private final int remainingCount;
 
     public CommentItem(String id, String userName, String content, String time, String avatarUrl) {
-        this(id, userName, content, time, avatarUrl, null, null, 0, false, false, 0);
+        this(id, userName, content, time, avatarUrl, null, null, null, 0, false, false, 0);
     }
 
     public CommentItem(String id, String userName, String content, String time, String avatarUrl,
-                       String parentId, String replyToUserName, int likeCount, boolean liked) {
-        this(id, userName, content, time, avatarUrl, parentId, replyToUserName, likeCount, liked, false, 0);
+                       String parentId, String replyToUserName, String authorId, int likeCount, boolean liked) {
+        this(id, userName, content, time, avatarUrl, parentId, replyToUserName, authorId, likeCount, liked, false, 0);
     }
 
     public CommentItem(String id, String userName, String content, String time, String avatarUrl,
-                       String parentId, String replyToUserName, int likeCount, boolean liked,
+                       String parentId, String replyToUserName, String authorId, int likeCount, boolean liked,
                        boolean isMoreIndicator, int remainingCount) {
         this.id = id;
         this.userName = userName;
@@ -35,6 +36,7 @@ public class CommentItem {
         this.avatarUrl = avatarUrl;
         this.parentId = parentId;
         this.replyToUserName = replyToUserName;
+        this.authorId = authorId;
         this.likeCount = Math.max(0, likeCount);
         this.liked = liked;
         this.isMoreIndicator = isMoreIndicator;
@@ -87,5 +89,9 @@ public class CommentItem {
 
     public int getRemainingCount() {
         return remainingCount;
+    }
+
+    public String getAuthorId() {
+        return authorId;
     }
 }

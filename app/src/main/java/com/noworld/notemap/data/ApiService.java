@@ -64,6 +64,10 @@ public interface  ApiService {
     @POST("/api/comments/{id}/like")
     Call<LikeResponse> toggleCommentLike(@Path("id") String commentId);
 
+    // 【评论】删除
+    @DELETE("/api/comments/{id}")
+    Call<Void> deleteComment(@Path("id") String commentId);
+
     // 【新增】修改笔记 (内容 或 可见性)
     @PUT("/api/notes/{id}")
     Call<Void> updateNote(@Path("id") String id, @Body com.noworld.notemap.data.dto.UpdateNoteRequest request);
