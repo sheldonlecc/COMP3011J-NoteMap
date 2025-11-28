@@ -23,6 +23,7 @@
         android:textColor="#111"
         android:textSize="14sp"
         android:textStyle="bold"
+        android:layout_marginStart="12dp"
         app:layout_constraintStart_toEndOf="@id/iv_notif_avatar"
         app:layout_constraintTop_toTopOf="@id/iv_notif_avatar"
         app:layout_constraintEnd_toEndOf="parent" />

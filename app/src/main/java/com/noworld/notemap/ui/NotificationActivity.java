@@ -51,20 +51,24 @@ public class NotificationActivity extends AppCompatActivity {
     }
 
     private void handleNotificationClick(NotificationItem item) {
-        if (item == null || item.targetType == null) {
-            return;
-        }
-        if ("note".equalsIgnoreCase(item.targetType)) {
-            openNoteById(item.targetId, null);
-        } else if ("comment".equalsIgnoreCase(item.targetType)) {
+        if (item == null) return;
+
+        // 以 targetType 为准：comment 时 targetId 是评论 ID，需要定位并高亮；否则按作品处理
+        if ("comment".equalsIgnoreCase(item.targetType) && !TextUtils.isEmpty(item.targetId)) {
             if (!TextUtils.isEmpty(item.noteId)) {
                 openNoteById(item.noteId, item.targetId);
-            } else if (!TextUtils.isEmpty(item.targetId)) {
-                // targetId 是评论 ID，去遍历笔记找到它
-                openNoteByCommentId(item.targetId);
             } else {
-                Toast.makeText(this, "未找到对应作品", Toast.LENGTH_SHORT).show();
+                openNoteByCommentId(item.targetId);
             }
+            return;
+        }
+
+        // 作品类及其他：优先用 noteId，否则退回 targetId 打开作品
+        String noteId = !TextUtils.isEmpty(item.noteId) ? item.noteId : item.targetId;
+        if (!TextUtils.isEmpty(noteId)) {
+            openNoteById(noteId, null);
+        } else {
+            Toast.makeText(this, "未找到对应作品", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -166,7 +170,8 @@ public class NotificationActivity extends AppCompatActivity {
                     r.actorAvatar,
                     r.targetType,
                     r.targetId,
-                    r.noteId
+                    r.noteId,
+                    r.type
             ));
         }
         runOnUiThread(() -> adapter.setData(list));
@@ -198,8 +203,9 @@ public class NotificationActivity extends AppCompatActivity {
         final String targetType;
         final String targetId;
         final String noteId;
+        final String type;
 
-        NotificationItem(String title, String subtitle, String time, String avatarUrl, String targetType, String targetId, String noteId) {
+        NotificationItem(String title, String subtitle, String time, String avatarUrl, String targetType, String targetId, String noteId, String type) {
             this.title = title;
             this.subtitle = subtitle;
             this.time = time;
@@ -207,6 +213,7 @@ public class NotificationActivity extends AppCompatActivity {
             this.targetType = targetType;
             this.targetId = targetId;
             this.noteId = noteId;
+            this.type = type;
         }
     }
 }
