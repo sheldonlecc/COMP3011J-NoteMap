@@ -88,7 +88,7 @@ public class CommentAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             MoreVH h = (MoreVH) holder;
             String text = "显示更多评论";
             if (item.getRemainingCount() > 0) {
-                text = "显示更多评论 (" + item.getRemainingCount() + ")";
+                text = "                            —显示更多评论 (" + item.getRemainingCount() + ")—";
             }
             h.tvMore.setText(text);
             h.itemView.setOnClickListener(v -> {
