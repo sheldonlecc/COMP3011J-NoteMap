@@ -10,6 +10,8 @@ import com.noworld.notemap.data.dto.OssPresignResponse;
 import com.noworld.notemap.data.dto.PublishNoteRequest;
 import com.noworld.notemap.data.dto.UpdateProfileRequest;
 import com.noworld.notemap.data.dto.UpdateProfileResponse;
+import com.noworld.notemap.data.dto.AddCommentRequest;
+import com.noworld.notemap.data.dto.CommentResponse;
 
 import java.util.List;
 
@@ -49,6 +51,14 @@ public interface  ApiService {
     Call<UpdateProfileResponse> updateProfile(@Body UpdateProfileRequest request);
 
     // ... 原有的代码 ...
+
+    // 【评论】获取笔记评论列表
+    @GET("/api/notes/{id}/comments")
+    Call<List<CommentResponse>> getComments(@Path("id") String noteId);
+
+    // 【评论】发表评论
+    @POST("/api/notes/{id}/comments")
+    Call<CommentResponse> addComment(@Path("id") String noteId, @Body AddCommentRequest request);
 
     // 【新增】修改笔记 (内容 或 可见性)
     @PUT("/api/notes/{id}")

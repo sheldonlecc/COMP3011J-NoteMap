@@ -14,9 +14,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -38,6 +40,7 @@ import com.noworld.notemap.data.AliNoteRepository;
 import com.noworld.notemap.data.LikedStore;
 import com.noworld.notemap.data.TokenStore;
 import com.noworld.notemap.data.UserStore;
+import com.noworld.notemap.data.model.CommentItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,11 +66,13 @@ public class NoteDetailActivity extends AppCompatActivity {
     private TextView tvDetailTime;
     private RecyclerView rvComments;
     private TextView tvInputComment;
+    private TextView tvCommentSectionTitle;
 
     private LinearLayout layoutLike;
     private ImageView ivDetailLike;
     private TextView tvLikeCount;
     private TextView tvCommentCount;
+    private LinearLayout layoutComment;
 
     private AliNoteRepository noteRepository;
     private LikedStore likedStore;
@@ -76,6 +81,9 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     private final List<String> photoUrls = new ArrayList<>();
     private int currentIndex = 0;
+
+    private final List<CommentItem> comments = new ArrayList<>();
+    private CommentAdapter commentAdapter;
 
     // 【新增】标记当前用户是否是作者
     private boolean isAuthor = false;
@@ -249,8 +257,10 @@ public class NoteDetailActivity extends AppCompatActivity {
         tvDetailTime = findViewById(R.id.tv_detail_time);
         rvComments = findViewById(R.id.rv_comments);
         tvInputComment = findViewById(R.id.tv_input_comment);
+        tvCommentSectionTitle = findViewById(R.id.tv_comment_section_title);
 
         layoutLike = findViewById(R.id.layout_like);
+        layoutComment = findViewById(R.id.layout_comment);
         ivDetailLike = findViewById(R.id.iv_detail_like);
         tvLikeCount = findViewById(R.id.tv_detail_like_count);
         tvCommentCount = findViewById(R.id.tv_detail_comment_count);
@@ -258,6 +268,8 @@ public class NoteDetailActivity extends AppCompatActivity {
         if (rvComments != null) {
             rvComments.setLayoutManager(new LinearLayoutManager(this));
             rvComments.setNestedScrollingEnabled(false);
+            commentAdapter = new CommentAdapter(comments);
+            rvComments.setAdapter(commentAdapter);
         }
     }
 
@@ -271,12 +283,13 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     private void initEvent() {
         if (tvInputComment != null) {
-            tvInputComment.setOnClickListener(v -> {
-                Toast.makeText(this, "点击了评论框", Toast.LENGTH_SHORT).show();
-            });
+            tvInputComment.setOnClickListener(v -> showCommentDialog());
         }
         if (layoutLike != null) {
             layoutLike.setOnClickListener(v -> handleLikeClick());
+        }
+        if (layoutComment != null) {
+            layoutComment.setOnClickListener(v -> showCommentDialog());
         }
     }
 
@@ -376,22 +389,107 @@ public class NoteDetailActivity extends AppCompatActivity {
     }
 
     private void loadComments() {
-        List<CommentItem> comments = new ArrayList<>();
-        comments.add(new CommentItem("爱吃猫的鱼", "这个地方真不错！我也想去。", "10分钟前"));
+        if (mNote == null) return;
+        noteRepository.fetchComments(mNote.getNoteId(), new AliNoteRepository.CommentsCallback() {
+            @Override
+            public void onSuccess(List<CommentItem> list) {
+                runOnUiThread(() -> {
+                    comments.clear();
+                    if (list != null) {
+                        comments.addAll(list);
+                    }
+                    if (commentAdapter != null) {
+                        commentAdapter.updateData(comments);
+                    }
+                    updateCommentCounter();
+                });
+            }
 
-        CommentAdapter adapter = new CommentAdapter(comments);
-        if (rvComments != null) {
-            rvComments.setAdapter(adapter);
-        }
+            @Override
+            public void onError(@NonNull Throwable throwable) {
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "加载评论失败: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
 
+    private void updateCommentCounter() {
+        int count = comments.size();
         if (tvCommentCount != null) {
-            tvCommentCount.setText(String.valueOf(comments.size()));
+            tvCommentCount.setText(String.valueOf(count));
         }
+        if (tvCommentSectionTitle != null) {
+            tvCommentSectionTitle.setText("共 " + count + " 条评论");
+        }
+    }
 
-        TextView tvSectionTitle = findViewById(R.id.tv_comment_section_title);
-        if (tvSectionTitle != null) {
-            tvSectionTitle.setText("共 " + comments.size() + " 条评论");
+    private boolean ensureLoggedInForComment() {
+        String token = tokenStore.getToken();
+        if (token == null || token.isEmpty()) {
+            Toast.makeText(this, "请先登录再发表评论", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, LoginActivity.class));
+            return false;
         }
+        return true;
+    }
+
+    private void showCommentDialog() {
+        if (mNote == null) return;
+        if (!ensureLoggedInForComment()) return;
+
+        final EditText input = new EditText(this);
+        input.setHint("友善评论，理性发言");
+        int padding = (int) (getResources().getDisplayMetrics().density * 12);
+        input.setPadding(padding, padding / 2, padding, padding / 2);
+        input.setMinLines(1);
+        input.setMaxLines(4);
+
+        new AlertDialog.Builder(this)
+                .setTitle("发表评论")
+                .setView(input)
+                .setPositiveButton("发送", (dialog, which) -> {
+                    String content = input.getText().toString().trim();
+                    if (TextUtils.isEmpty(content)) {
+                        Toast.makeText(NoteDetailActivity.this, "评论内容不能为空", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    submitComment(content);
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void submitComment(String content) {
+        if (mNote == null) return;
+        noteRepository.addComment(mNote.getNoteId(), content, new AliNoteRepository.AddCommentCallback() {
+            @Override
+            public void onSuccess(CommentItem newComment) {
+                runOnUiThread(() -> {
+                    if (commentAdapter != null) {
+                        commentAdapter.addCommentToTop(newComment);
+                    } else {
+                        comments.add(0, newComment);
+                    }
+                    updateCommentCounter();
+                    if (rvComments != null) {
+                        rvComments.scrollToPosition(0);
+                    }
+                    Toast.makeText(NoteDetailActivity.this, "评论成功", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onRequireLogin() {
+                runOnUiThread(() -> {
+                    Toast.makeText(NoteDetailActivity.this, "登录已过期，请重新登录", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(NoteDetailActivity.this, LoginActivity.class));
+                });
+            }
+
+            @Override
+            public void onError(@NonNull Throwable throwable) {
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "评论失败: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        });
     }
 
     private void openFullImage() {

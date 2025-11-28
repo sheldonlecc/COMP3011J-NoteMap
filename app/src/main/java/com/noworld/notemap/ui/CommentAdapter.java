@@ -9,23 +9,34 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide; // 2. 导入 Glide
 import com.noworld.notemap.R;
+import com.noworld.notemap.data.model.CommentItem;
+import java.util.ArrayList;
 import java.util.List;
-
-// 简单的评论数据类
-class CommentItem {
-    String userName;
-    String content;
-    String time;
-    // 如果之后有头像URL，可以在这里加一个 String avatarUrl;
-    public CommentItem(String u, String c, String t) { userName = u; content = c; time = t; }
-}
 
 public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.VH> {
 
-    private List<CommentItem> data;
+    private final List<CommentItem> data;
 
     public CommentAdapter(List<CommentItem> data) {
         this.data = data;
+    }
+
+    public void updateData(List<CommentItem> newData) {
+        List<CommentItem> source = newData;
+        if (source == data) {
+            source = new ArrayList<>(newData);
+        }
+        data.clear();
+        if (source != null) {
+            data.addAll(source);
+        }
+        notifyDataSetChanged();
+    }
+
+    public void addCommentToTop(CommentItem item) {
+        if (item == null) return;
+        data.add(0, item);
+        notifyItemInserted(0);
     }
 
     @NonNull
@@ -38,13 +49,13 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.VH> {
     @Override
     public void onBindViewHolder(@NonNull VH holder, int position) {
         CommentItem item = data.get(position);
-        holder.tvUser.setText(item.userName);
-        holder.tvContent.setText(item.content);
-        holder.tvTime.setText(item.time);
+        holder.tvUser.setText(item.getUserName());
+        holder.tvContent.setText(item.getContent());
+        holder.tvTime.setText(item.getTime());
 
         // 3. 【核心修改】使用 Glide 加载头像并裁剪为圆形
         Glide.with(holder.itemView.getContext())
-                .load(R.drawable.ic_profile) // 这里暂时加载默认图，如果您以后有了 URL，换成 item.avatarUrl
+                .load(item.getAvatarUrl() != null ? item.getAvatarUrl() : R.drawable.ic_profile)
                 .placeholder(R.drawable.ic_profile) // 加载中显示的图
                 .error(R.drawable.ic_profile)       // 错误时显示的图
                 .circleCrop()                       // 【重点】强制变成圆形

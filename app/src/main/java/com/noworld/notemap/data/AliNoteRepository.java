@@ -12,6 +12,9 @@ import com.noworld.notemap.data.dto.MapNoteResponse;
 import com.noworld.notemap.data.dto.OssPresignRequest;
 import com.noworld.notemap.data.dto.OssPresignResponse;
 import com.noworld.notemap.data.dto.PublishNoteRequest;
+import com.noworld.notemap.data.dto.AddCommentRequest;
+import com.noworld.notemap.data.dto.CommentResponse;
+import com.noworld.notemap.data.model.CommentItem;
 
 import java.io.InputStream;
 import java.net.UnknownServiceException;
@@ -55,6 +58,20 @@ public class AliNoteRepository {
 
     public interface LikeCallback {
         void onResult(boolean liked, int likeCount);
+
+        void onRequireLogin();
+
+        void onError(@NonNull Throwable throwable);
+    }
+
+    public interface CommentsCallback {
+        void onSuccess(List<CommentItem> comments);
+
+        void onError(@NonNull Throwable throwable);
+    }
+
+    public interface AddCommentCallback {
+        void onSuccess(CommentItem newComment);
 
         void onRequireLogin();
 
@@ -364,6 +381,64 @@ public class AliNoteRepository {
                 callback.onError(t);
             }
         });
+    }
+
+    public void fetchComments(String noteId, CommentsCallback callback) {
+        api.getComments(noteId).enqueue(new Callback<List<CommentResponse>>() {
+            @Override
+            public void onResponse(@NonNull Call<List<CommentResponse>> call, @NonNull Response<List<CommentResponse>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(new IllegalStateException("获取评论失败"));
+                    return;
+                }
+                List<CommentItem> result = new ArrayList<>();
+                for (CommentResponse resp : response.body()) {
+                    result.add(mapToCommentItem(resp));
+                }
+                callback.onSuccess(result);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<List<CommentResponse>> call, @NonNull Throwable t) {
+                callback.onError(t);
+            }
+        });
+    }
+
+    public void addComment(String noteId, String content, AddCommentCallback callback) {
+        String token = tokenStore.getToken();
+        if (token == null || token.isEmpty()) {
+            callback.onRequireLogin();
+            return;
+        }
+        api.addComment(noteId, new AddCommentRequest(content)).enqueue(new Callback<CommentResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<CommentResponse> call, @NonNull Response<CommentResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onSuccess(mapToCommentItem(response.body()));
+                } else if (response.code() == 401) {
+                    callback.onRequireLogin();
+                } else {
+                    callback.onError(new IllegalStateException("评论失败"));
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<CommentResponse> call, @NonNull Throwable t) {
+                callback.onError(t);
+            }
+        });
+    }
+
+    private CommentItem mapToCommentItem(CommentResponse resp) {
+        if (resp == null) return new CommentItem("", "未知用户", "", "", null);
+        return new CommentItem(
+                resp.id != null ? resp.id : "",
+                resp.userName != null ? resp.userName : "地图用户",
+                resp.content != null ? resp.content : "",
+                resp.createdAt != null ? resp.createdAt : "",
+                resp.avatarUrl
+        );
     }
 
     private String getCurrentUid() {
