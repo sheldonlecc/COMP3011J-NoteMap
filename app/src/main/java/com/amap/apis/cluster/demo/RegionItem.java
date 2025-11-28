@@ -36,6 +36,8 @@ public class RegionItem implements ClusterItem, Serializable {
 
     private String authorId;
 
+
+
     // 构造函数
     public RegionItem(LatLng latLng, String noteId, String title, String photoUrl,
                       String authorName, String authorAvatarUrl, int likeCount,
@@ -135,4 +137,6 @@ public class RegionItem implements ClusterItem, Serializable {
     public double getLongitude() {
         return getPosition().longitude;
     }
+
+
 }

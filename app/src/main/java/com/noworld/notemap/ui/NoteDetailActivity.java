@@ -289,7 +289,8 @@ public class NoteDetailActivity extends AppCompatActivity {
 
         if (tvDetailTime != null) {
             String time = mNote.getCreateTime();
-            tvDetailTime.setText("发布于 " + (time != null ? time : "2023-11-27"));
+            // 【关键修改】如果时间为空，显示空字符串而不是旧的硬编码日期
+            tvDetailTime.setText("发布于 " + (time != null && !time.isEmpty() ? time : "未知时间"));
         }
 
         refreshLikeState();

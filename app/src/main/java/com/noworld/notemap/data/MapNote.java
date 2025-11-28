@@ -43,6 +43,8 @@ public class MapNote {
 
     private boolean isPrivate;
 
+    private String createTime; // 【新增】
+
     public MapNote() {
     }
 
@@ -79,6 +81,8 @@ public class MapNote {
 
         // 【fromResponse 赋值】
         note.isPrivate = response.isPrivate;
+
+        note.createTime = response.createTime; // 【新增】赋值
         return note;
     }
 
@@ -114,6 +118,8 @@ public class MapNote {
         // 关键：将状态传递给 RegionItem
         item.setAuthorId(authorId);
         item.setPrivate(isPrivate); // 调用 RegionItem 的 setPrivate 方法
+
+        item.setCreateTime(createTime); // 【新增】传递给 RegionItem
 
         return item;
     }

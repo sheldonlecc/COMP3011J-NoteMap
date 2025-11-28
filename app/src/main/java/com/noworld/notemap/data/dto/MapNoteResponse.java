@@ -15,6 +15,9 @@ public class MapNoteResponse {
     public String authorId;
     public String authorName;
 
+    public String createTime;
+
+
     // 【关键修改】
     // 请确认后端 JSON 里，头像那个字段到底叫什么？
     // 情况 A：后端叫 "avatar" (最常见) -> 写 @SerializedName("avatar")

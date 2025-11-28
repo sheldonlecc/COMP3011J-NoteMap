@@ -523,19 +523,23 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private void updateNoteData(List<RegionItem> notes) {
         latestNotes.clear();
 
-        // 准备时间格式化工具
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
-        long currentTimeMillis = System.currentTimeMillis();
+        // 【重要！】删除或注释掉时间格式化工具和时间变量的准备，因为不再需要本地生成时间。
+        // SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+        // long currentTimeMillis = System.currentTimeMillis();
 
         if (notes != null) {
             for (int i = 0; i < notes.size(); i++) {
                 RegionItem item = notes.get(i);
 
-                // --- 【核心修复】时间问题 ---
-                // 之前是因为 RegionItem 有默认值 "2023-11-27"，导致逻辑跳过了更新。
-                // 既然后端没返回时间，我们这里直接强制覆盖为当前时间！
-                long fakeTime = currentTimeMillis - (i * 1000L * 60L * 5L); // 每个笔记错开5分钟
-                item.setCreateTime(sdf.format(new Date(fakeTime)));
+                // --- 【核心修复】时间问题：删除以下三行强制覆盖时间的代码 ---
+            /*
+            // 之前是因为 RegionItem 有默认值 "2023-11-27"，导致逻辑跳过了更新。
+            // 既然后端没返回时间，我们这里直接强制覆盖为当前时间！
+            long fakeTime = currentTimeMillis - (i * 1000L * 60L * 5L); // 每个笔记错开5分钟
+            item.setCreateTime(sdf.format(new Date(fakeTime)));
+            */
+                // --- 逻辑删除完毕。现在 item.getCreateTime() 将使用 MapNote 传入的后端时间 ---
+
 
                 // --- 头像逻辑保持不变 (相信后端数据) ---
                 // 只要后端返回了 authorAvatarUrl，这里就能自动显示
