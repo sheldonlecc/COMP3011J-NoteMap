@@ -60,6 +60,10 @@ public interface  ApiService {
     @POST("/api/notes/{id}/comments")
     Call<CommentResponse> addComment(@Path("id") String noteId, @Body AddCommentRequest request);
 
+    // 【评论】点赞/取消点赞
+    @POST("/api/comments/{id}/like")
+    Call<LikeResponse> toggleCommentLike(@Path("id") String commentId);
+
     // 【新增】修改笔记 (内容 或 可见性)
     @PUT("/api/notes/{id}")
     Call<Void> updateNote(@Path("id") String id, @Body com.noworld.notemap.data.dto.UpdateNoteRequest request);

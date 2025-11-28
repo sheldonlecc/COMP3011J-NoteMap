@@ -78,6 +78,14 @@ public class AliNoteRepository {
         void onError(@NonNull Throwable throwable);
     }
 
+    public interface CommentLikeCallback {
+        void onResult(boolean liked, int likeCount);
+
+        void onRequireLogin();
+
+        void onError(@NonNull Throwable throwable);
+    }
+
     private static final String TAG = "AliNoteRepository";
     private static AliNoteRepository INSTANCE;
     private final ApiService api;
@@ -434,8 +442,31 @@ public class AliNoteRepository {
         addComment(noteId, content, null, callback);
     }
 
+    public void toggleCommentLike(String commentId, CommentLikeCallback callback) {
+        String token = tokenStore.getToken();
+        if (token == null || token.isEmpty()) {
+            callback.onRequireLogin();
+            return;
+        }
+        api.toggleCommentLike(commentId).enqueue(new Callback<LikeResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<LikeResponse> call, @NonNull Response<LikeResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onResult(response.body().liked, response.body().likeCount);
+                } else {
+                    callback.onError(new IllegalStateException("操作失败"));
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<LikeResponse> call, @NonNull Throwable t) {
+                callback.onError(t);
+            }
+        });
+    }
+
     private CommentItem mapToCommentItem(CommentResponse resp) {
-        if (resp == null) return new CommentItem("", "未知用户", "", "", null, null, null);
+        if (resp == null) return new CommentItem("", "未知用户", "", "", null, null, null, 0, false);
         return new CommentItem(
                 resp.id != null ? resp.id : "",
                 resp.userName != null ? resp.userName : "地图用户",
@@ -443,7 +474,9 @@ public class AliNoteRepository {
                 resp.createdAt != null ? resp.createdAt : "",
                 resp.avatarUrl,
                 resp.parentId,
-                resp.replyToUserName
+                resp.replyToUserName,
+                resp.likeCount != null ? resp.likeCount : 0,
+                resp.liked != null && resp.liked
         );
     }
 

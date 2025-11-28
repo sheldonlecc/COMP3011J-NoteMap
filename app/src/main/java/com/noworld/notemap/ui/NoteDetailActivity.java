@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -15,6 +16,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -32,6 +34,8 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import android.view.inputmethod.InputMethodManager;
 
 import com.amap.apis.cluster.demo.RegionItem;
 import com.bumptech.glide.Glide;
@@ -43,6 +47,7 @@ import com.noworld.notemap.data.UserStore;
 import com.noworld.notemap.data.model.CommentItem;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -82,9 +87,35 @@ public class NoteDetailActivity extends AppCompatActivity {
     private final List<String> photoUrls = new ArrayList<>();
     private int currentIndex = 0;
 
+    private final List<CommentItem> rawComments = new ArrayList<>();
     private final List<CommentItem> comments = new ArrayList<>();
     private CommentAdapter commentAdapter;
     private CommentItem replyTarget;
+    private BottomSheetDialog commentDialog;
+    private EditText commentInput;
+    private final java.util.Map<String, Integer> replyShownCount = new java.util.HashMap<>();
+    private static final String TAG = "NoteDetailActivity";
+
+    /**
+     * 计算当前评论应该归属的“根父评论”ID（顶级评论 ID）。
+     * 如果 parentId 指向的是另一条子评论，则逐级向上找到顶级。
+     */
+    private String resolveRootParentId(CommentItem item, java.util.Map<String, CommentItem> idMap) {
+        if (item == null) return null;
+        String pid = normalizeParentId(item.getParentId());
+        if (pid == null) return null;
+        String current = pid;
+        int guard = 0;
+        while (current != null && guard < 10_000) {
+            CommentItem p = idMap.get(current);
+            if (p == null) break;
+            String next = normalizeParentId(p.getParentId());
+            if (next == null) break;
+            current = next;
+            guard++;
+        }
+        return current;
+    }
 
     // 【新增】标记当前用户是否是作者
     private boolean isAuthor = false;
@@ -270,7 +301,16 @@ public class NoteDetailActivity extends AppCompatActivity {
             rvComments.setLayoutManager(new LinearLayoutManager(this));
             rvComments.setNestedScrollingEnabled(false);
             commentAdapter = new CommentAdapter(comments);
-            commentAdapter.setOnCommentActionListener(this::onReplyClicked);
+            commentAdapter.setOnCommentActionListener(new CommentAdapter.OnCommentActionListener() {
+                @Override
+                public void onReply(CommentItem item) { onReplyClicked(item); }
+
+                @Override
+                public void onToggleReplies(String parentId, boolean expand) { NoteDetailActivity.this.onToggleReplies(parentId, expand); }
+
+                @Override
+                public void onLike(CommentItem item) { onCommentLike(item); }
+            });
             rvComments.setAdapter(commentAdapter);
         }
     }
@@ -285,13 +325,13 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     private void initEvent() {
         if (tvInputComment != null) {
-            tvInputComment.setOnClickListener(v -> showCommentDialog());
+            tvInputComment.setOnClickListener(v -> showCommentSheet());
         }
         if (layoutLike != null) {
             layoutLike.setOnClickListener(v -> handleLikeClick());
         }
         if (layoutComment != null) {
-            layoutComment.setOnClickListener(v -> showCommentDialog());
+            layoutComment.setOnClickListener(v -> showCommentSheet());
         }
     }
 
@@ -396,10 +436,14 @@ public class NoteDetailActivity extends AppCompatActivity {
             @Override
             public void onSuccess(List<CommentItem> list) {
                 runOnUiThread(() -> {
-                    comments.clear();
+                    replyShownCount.clear();
+                    rawComments.clear();
                     if (list != null) {
-                        comments.addAll(buildDisplayList(list));
+                        rawComments.addAll(list);
                     }
+                    Log.d(TAG, "loadComments success raw size=" + rawComments.size());
+                    comments.clear();
+                    comments.addAll(buildDisplayList(rawComments));
                     if (commentAdapter != null) {
                         commentAdapter.updateData(comments);
                     }
@@ -415,7 +459,7 @@ public class NoteDetailActivity extends AppCompatActivity {
     }
 
     private void updateCommentCounter() {
-        int count = comments.size();
+        int count = rawComments.size();
         if (tvCommentCount != null) {
             tvCommentCount.setText(String.valueOf(count));
         }
@@ -426,31 +470,78 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     private List<CommentItem> buildDisplayList(List<CommentItem> original) {
         List<CommentItem> parents = new ArrayList<>();
-        List<CommentItem> replies = new ArrayList<>();
+        java.util.Map<String, CommentItem> idMap = new java.util.HashMap<>();
+        for (CommentItem c : original) {
+            if (c.getId() != null) {
+                idMap.put(c.getId(), c);
+            }
+        }
+        LinkedHashMap<String, List<CommentItem>> childMap = new LinkedHashMap<>();
         for (CommentItem item : original) {
-            if (item.isReply()) {
-                replies.add(item);
+            String pid = resolveRootParentId(item, idMap);
+            if (pid != null) {
+                childMap.computeIfAbsent(pid, k -> new ArrayList<>()).add(item);
             } else {
                 parents.add(item);
             }
         }
+        Log.d(TAG, "buildDisplayList parents=" + parents.size() + " childGroups=" + childMap.size());
         List<CommentItem> result = new ArrayList<>();
-        result.addAll(parents);
-        for (CommentItem reply : replies) {
-            int parentIndex = -1;
-            for (int i = 0; i < result.size(); i++) {
-                if (reply.getParentId() != null && reply.getParentId().equals(result.get(i).getId())) {
-                    parentIndex = i;
-                    break;
-                }
+        for (CommentItem parent : parents) {
+            result.add(parent);
+            List<CommentItem> childList = childMap.get(parent.getId());
+            if (childList == null || childList.isEmpty()) continue;
+            int shown = replyShownCount.getOrDefault(parent.getId(), 0);
+            // 初始折叠：如果子评论>1且尚未记录，则设为0（不展示）
+            if (!replyShownCount.containsKey(parent.getId()) && childList.size() > 1) {
+                shown = 0;
             }
-            if (parentIndex >= 0) {
-                result.add(parentIndex + 1, reply);
-            } else {
-                result.add(reply);
+            int threshold = 3;
+            int toShow = Math.min(shown, childList.size());
+            if (childList.size() <= 1) {
+                result.addAll(childList);
+                Log.d(TAG, "parent " + parent.getId() + " children=" + childList.size() + " show all (<=1)");
+                continue;
             }
+            if (toShow > 0) {
+                result.addAll(childList.subList(0, toShow));
+            }
+            int remaining = childList.size() - toShow;
+            if (remaining > 0) {
+                result.add(new CommentItem(
+                        "more_" + parent.getId(),
+                        "",
+                        "",
+                        "",
+                        null,
+                        parent.getId(),
+                        null,
+                        0,
+                        false,
+                        true,
+                        remaining
+                ));
+            }
+            Log.d(TAG, "parent " + parent.getId() + " children=" + childList.size() + " shown=" + toShow + " remaining=" + remaining);
         }
+        Log.d(TAG, "buildDisplayList result size=" + result.size());
         return result;
+    }
+
+    private void rebuildDisplayComments() {
+        comments.clear();
+        comments.addAll(buildDisplayList(rawComments));
+        if (commentAdapter != null) {
+            commentAdapter.updateData(comments);
+        }
+        updateCommentCounter();
+    }
+
+    private String normalizeParentId(String pid) {
+        if (pid == null) return null;
+        String t = pid.trim();
+        if (t.isEmpty() || "0".equals(t) || "null".equalsIgnoreCase(t)) return null;
+        return t;
     }
 
     private boolean ensureLoggedInForComment() {
@@ -463,36 +554,55 @@ public class NoteDetailActivity extends AppCompatActivity {
         return true;
     }
 
-    private void showCommentDialog() {
+    private void showCommentSheet() {
         if (mNote == null) return;
         if (!ensureLoggedInForComment()) return;
 
-        final EditText input = new EditText(this);
-        String hint = replyTarget != null ? ("回复 " + replyTarget.getUserName()) : "友善评论，理性发言";
-        input.setHint(hint);
-        int padding = (int) (getResources().getDisplayMetrics().density * 12);
-        input.setPadding(padding, padding / 2, padding, padding / 2);
-        input.setMinLines(1);
-        input.setMaxLines(4);
+        if (commentDialog == null) {
+            commentDialog = new BottomSheetDialog(this);
+            View sheet = getLayoutInflater().inflate(R.layout.dialog_comment_input, null, false);
+            commentInput = sheet.findViewById(R.id.et_comment_input);
+            View btnSend = sheet.findViewById(R.id.btn_comment_send);
+            View btnClose = sheet.findViewById(R.id.iv_comment_close);
 
-        new AlertDialog.Builder(this)
-                .setTitle(replyTarget != null ? "回复评论" : "发表评论")
-                .setView(input)
-                .setPositiveButton("发送", (dialog, which) -> {
-                    String content = input.getText().toString().trim();
-                    if (TextUtils.isEmpty(content)) {
-                        Toast.makeText(NoteDetailActivity.this, "评论内容不能为空", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    submitComment(content);
-                })
-                .setNegativeButton("取消", null)
-                .show();
+            btnSend.setOnClickListener(v -> {
+                if (commentInput == null) return;
+                String content = commentInput.getText().toString().trim();
+                if (TextUtils.isEmpty(content)) {
+                    Toast.makeText(NoteDetailActivity.this, "评论内容不能为空", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                submitComment(content);
+            });
+            btnClose.setOnClickListener(v -> commentDialog.dismiss());
+            commentDialog.setContentView(sheet);
+        }
+
+        if (commentInput != null) {
+            String hint = replyTarget != null ? ("回复 " + replyTarget.getUserName()) : "友善评论，理性发言";
+            commentInput.setHint(hint);
+            commentInput.setText("");
+            commentInput.requestFocus();
+            commentInput.post(() -> {
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) imm.showSoftInput(commentInput, InputMethodManager.SHOW_IMPLICIT);
+            });
+        }
+        if (!commentDialog.isShowing()) {
+            commentDialog.show();
+        }
     }
 
     private void submitComment(String content) {
         if (mNote == null) return;
-        String parentId = replyTarget != null ? replyTarget.getId() : null;
+        String parentId;
+        if (replyTarget != null) {
+            // 统一指向顶级父评论，避免多级回复丢失
+            String targetParent = normalizeParentId(replyTarget.getParentId());
+            parentId = targetParent != null ? targetParent : replyTarget.getId();
+        } else {
+            parentId = null;
+        }
         noteRepository.addComment(mNote.getNoteId(), content, parentId, new AliNoteRepository.AddCommentCallback() {
             @Override
             public void onSuccess(CommentItem newComment) {
@@ -505,27 +615,28 @@ public class NoteDetailActivity extends AppCompatActivity {
                                 newComment.getContent(),
                                 newComment.getTime(),
                                 newComment.getAvatarUrl(),
-                                replyTarget.getId(),
-                                replyTarget.getUserName()
+                                parentId,
+                                replyTarget.getUserName(),
+                                newComment.getLikeCount(),
+                                newComment.isLiked(),
+                                false,
+                                0
                         );
                     }
-                    if (commentAdapter != null) {
-                        if (replyTarget != null) {
-                            commentAdapter.addReplyAfterParent(displayItem);
-                        } else {
-                            commentAdapter.addCommentToTop(displayItem);
-                        }
-                    } else {
-                        comments.add(0, displayItem);
-                    }
-                    updateCommentCounter();
-                    if (rvComments != null) {
-                        rvComments.scrollToPosition(0);
-                    }
+                    rawComments.add(0, displayItem);
+                    rebuildDisplayComments();
                     Toast.makeText(NoteDetailActivity.this, "评论成功", Toast.LENGTH_SHORT).show();
                     replyTarget = null;
-                });
-            }
+                    if (commentInput != null) {
+            commentInput.setText("");
+        }
+        if (commentDialog != null && commentDialog.isShowing()) {
+            commentDialog.dismiss();
+        }
+        // 保持当前父评论的展开状态，不强制展开
+        Log.d(TAG, "submitComment displayItem parentId=" + displayItem.getParentId() + " isReply=" + displayItem.isReply());
+    });
+}
 
             @Override
             public void onRequireLogin() {
@@ -544,8 +655,62 @@ public class NoteDetailActivity extends AppCompatActivity {
     }
 
     private void onReplyClicked(CommentItem item) {
+        if (item.isMoreIndicator()) {
+            onToggleReplies(item.getParentId(), true);
+            return;
+        }
         this.replyTarget = item;
-        showCommentDialog();
+        showCommentSheet();
+    }
+
+    private void onToggleReplies(String parentId, boolean expand) {
+        if (parentId == null) return;
+        int current = replyShownCount.getOrDefault(parentId, 0);
+        // 若当前为0且子评论超过1，意味着初始折叠，第一次点击显示3条
+        replyShownCount.put(parentId, current + 3);
+        rebuildDisplayComments();
+    }
+
+    private void onCommentLike(CommentItem item) {
+        if (item == null) return;
+        noteRepository.toggleCommentLike(item.getId(), new AliNoteRepository.CommentLikeCallback() {
+            @Override
+            public void onResult(boolean liked, int likeCount) {
+                runOnUiThread(() -> {
+                    for (int i = 0; i < rawComments.size(); i++) {
+                        CommentItem c = rawComments.get(i);
+                        if (c.getId().equals(item.getId())) {
+                            rawComments.set(i, new CommentItem(
+                                    c.getId(),
+                                    c.getUserName(),
+                                    c.getContent(),
+                                    c.getTime(),
+                                    c.getAvatarUrl(),
+                                    c.getParentId(),
+                                    c.getReplyToUserName(),
+                                    likeCount,
+                                    liked
+                            ));
+                            break;
+                        }
+                    }
+                    rebuildDisplayComments();
+                });
+            }
+
+            @Override
+            public void onRequireLogin() {
+                runOnUiThread(() -> {
+                    Toast.makeText(NoteDetailActivity.this, "请先登录再点赞评论", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(NoteDetailActivity.this, LoginActivity.class));
+                });
+            }
+
+            @Override
+            public void onError(@NonNull Throwable throwable) {
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "操作失败: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        });
     }
 
     private void openFullImage() {

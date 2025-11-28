@@ -11,12 +11,23 @@ public class CommentItem {
     private final String avatarUrl;
     private final String parentId;
     private final String replyToUserName;
+    private final int likeCount;
+    private final boolean liked;
+    private final boolean isMoreIndicator;
+    private final int remainingCount;
 
     public CommentItem(String id, String userName, String content, String time, String avatarUrl) {
-        this(id, userName, content, time, avatarUrl, null, null);
+        this(id, userName, content, time, avatarUrl, null, null, 0, false, false, 0);
     }
 
-    public CommentItem(String id, String userName, String content, String time, String avatarUrl, String parentId, String replyToUserName) {
+    public CommentItem(String id, String userName, String content, String time, String avatarUrl,
+                       String parentId, String replyToUserName, int likeCount, boolean liked) {
+        this(id, userName, content, time, avatarUrl, parentId, replyToUserName, likeCount, liked, false, 0);
+    }
+
+    public CommentItem(String id, String userName, String content, String time, String avatarUrl,
+                       String parentId, String replyToUserName, int likeCount, boolean liked,
+                       boolean isMoreIndicator, int remainingCount) {
         this.id = id;
         this.userName = userName;
         this.content = content;
@@ -24,6 +35,10 @@ public class CommentItem {
         this.avatarUrl = avatarUrl;
         this.parentId = parentId;
         this.replyToUserName = replyToUserName;
+        this.likeCount = Math.max(0, likeCount);
+        this.liked = liked;
+        this.isMoreIndicator = isMoreIndicator;
+        this.remainingCount = remainingCount;
     }
 
     public String getId() {
@@ -56,5 +71,21 @@ public class CommentItem {
 
     public boolean isReply() {
         return parentId != null && !parentId.isEmpty();
+    }
+
+    public int getLikeCount() {
+        return likeCount;
+    }
+
+    public boolean isLiked() {
+        return liked;
+    }
+
+    public boolean isMoreIndicator() {
+        return isMoreIndicator;
+    }
+
+    public int getRemainingCount() {
+        return remainingCount;
     }
 }

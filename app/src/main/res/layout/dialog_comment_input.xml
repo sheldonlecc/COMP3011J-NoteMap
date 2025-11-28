@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/white"
+        android:elevation="4dp"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:clipToPadding="false"
+        android:layout_marginBottom="4dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginHorizontal="4dp"
+        android:foreground="?android:attr/selectableItemBackground"
+        android:translationZ="4dp">
+
+        <ImageView
+            android:id="@+id/iv_comment_close"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="end"
+            android:padding="2dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel" />
+
+        <EditText
+            android:id="@+id/et_comment_input"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:background="@drawable/bg_comment_dialog_input"
+            android:gravity="top|start"
+            android:hint="友善评论，理性发言"
+            android:padding="12dp"
+            android:inputType="textMultiLine"
+            android:lines="4"
+            android:maxLines="6"
+            android:textColor="#111"
+            android:textColorHint="#999"
+            android:textSize="15sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/btn_comment_send"
+                android:layout_width="72dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_comment_send_button"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="发送"
+                android:textColor="@android:color/white"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

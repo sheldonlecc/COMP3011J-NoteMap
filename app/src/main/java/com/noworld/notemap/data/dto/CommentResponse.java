@@ -23,4 +23,10 @@ public class CommentResponse {
 
     @SerializedName(value = "replyToUserName", alternate = {"replyTo", "reply_to_user_name", "replyUserName"})
     public String replyToUserName;
+
+    @SerializedName(value = "likeCount", alternate = {"like_count"})
+    public Integer likeCount;
+
+    @SerializedName(value = "liked", alternate = {"isLiked"})
+    public Boolean liked;
 }
