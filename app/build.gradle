@@ -75,6 +75,8 @@ dependencies {
     // implementation 'com.amap.api:navi:latest.integration'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
+    implementation 'com.github.chrisbanes:PhotoView:2.3.0'
+
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity

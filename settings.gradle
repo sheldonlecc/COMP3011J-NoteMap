@@ -31,6 +31,9 @@ dependencyResolutionManagement {
         // 2. Maven 中心仓库
         mavenCentral()
 
+        maven { url 'https://jitpack.io' }
+
+
         // 3. 您的阿里云代理仓库作为补充，放在后面。
         maven { url=uri ("https://maven.aliyun.com/repository/releases")}
         maven { url=uri ("https://maven.aliyun.com/repository/google")}
