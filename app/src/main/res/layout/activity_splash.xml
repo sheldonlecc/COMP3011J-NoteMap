@@ -19,11 +19,12 @@
         <!-- App Logo 或 图标 (可选，我先放个占位符) -->
         <!-- 如果你有 logo 图片，把 src 换成你的 @drawable/logo -->
         <ImageView
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:src="@drawable/ic_launcher_foreground"
-            android:layout_marginBottom="16dp"
-            app:tint="?attr/colorPrimary"/>
+            android:id="@+id/iv_splash_logo"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:src="@drawable/logo"
+            android:scaleType="fitCenter"
+            android:layout_marginBottom="16dp" />
 
         <!-- 主标题：NoteMap -->
         <TextView
