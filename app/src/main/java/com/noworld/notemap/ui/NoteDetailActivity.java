@@ -116,11 +116,6 @@ public class NoteDetailActivity extends AppCompatActivity {
             isAuthor = currentUid.equals(mNote.getAuthorId());
         }
 
-        // 【请临时添加这一行代码来调试】
-        Toast.makeText(this, "我是作者吗? " + isAuthor +
-                " (我的ID: " + currentUid + " 笔记ID: " + mNote.getAuthorId() + ")", Toast.LENGTH_LONG).show();
-        // 【调试完成后请删除】
-
         // 调用 invalidateOptionsMenu 会触发 onCreateOptionsMenu 重新绘制菜单
         invalidateOptionsMenu();
     }
