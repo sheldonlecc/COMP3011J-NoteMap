@@ -68,7 +68,7 @@ public class NotificationActivity extends AppCompatActivity {
         if (!TextUtils.isEmpty(noteId)) {
             openNoteById(noteId, null);
         } else {
-            Toast.makeText(this, "未找到对应作品", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No matching post found", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -95,7 +95,7 @@ public class NotificationActivity extends AppCompatActivity {
 
             @Override
             public void onError(@NonNull Throwable throwable) {
-                runOnUiThread(() -> Toast.makeText(NotificationActivity.this, "加载作品失败", Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(NotificationActivity.this, "Failed to load post", Toast.LENGTH_SHORT).show());
             }
         });
     }
@@ -110,14 +110,14 @@ public class NotificationActivity extends AppCompatActivity {
 
             @Override
             public void onError(@NonNull Throwable throwable) {
-                runOnUiThread(() -> Toast.makeText(NotificationActivity.this, "加载作品失败", Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(NotificationActivity.this, "Failed to load post", Toast.LENGTH_SHORT).show());
             }
         });
     }
 
     private void searchCommentInNotes(List<RegionItem> items, int index, String commentId) {
         if (items == null || index >= items.size()) {
-            runOnUiThread(() -> Toast.makeText(this, "未找到对应评论或作品", Toast.LENGTH_SHORT).show());
+            runOnUiThread(() -> Toast.makeText(this, "Comment or post not found", Toast.LENGTH_SHORT).show());
             return;
         }
         RegionItem note = items.get(index);
@@ -164,7 +164,7 @@ public class NotificationActivity extends AppCompatActivity {
                 List<NotificationItem> list = new ArrayList<>();
         for (NotificationResponse r : response.body()) {
             list.add(new NotificationItem(
-                    r.actorName != null ? r.actorName + " " + renderAction(r.type) : "消息",
+                    r.actorName != null ? r.actorName + " " + renderAction(r.type) : "Notification",
                     r.message != null ? r.message : "",
                     r.time != null ? r.time : "",
                     r.actorAvatar,
@@ -187,11 +187,11 @@ public class NotificationActivity extends AppCompatActivity {
     private String renderAction(String type) {
         if (type == null) return "";
         switch (type) {
-            case "like_note": return "点赞了你的作品";
-            case "comment_note": return "评论了你的作品";
-            case "like_comment": return "点赞了你的评论";
-            case "comment_comment": return "回复了你的评论";
-            default: return "有新消息";
+            case "like_note": return "liked your note";
+            case "comment_note": return "commented on your note";
+            case "like_comment": return "liked your comment";
+            case "comment_comment": return "replied to your comment";
+            default: return "sent you a notification";
         }
     }
 

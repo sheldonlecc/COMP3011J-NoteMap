@@ -62,10 +62,10 @@ public class RegionItem implements ClusterItem, Serializable {
     // 兼容旧构造函数
     public RegionItem(LatLng latLng, String title) {
         this(latLng, "id_" + title, title, null,
-                "测试用户", null, (int)(Math.random() * 100),
-                "这是笔记的正文内容...",
-                "风景",
-                "北京市朝阳区"
+                "Test user", null, (int)(Math.random() * 100),
+                "Sample note content...",
+                "Scenery",
+                "Chaoyang, Beijing"
         );
     }
 

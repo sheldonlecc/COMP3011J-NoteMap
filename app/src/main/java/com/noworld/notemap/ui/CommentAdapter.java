@@ -86,9 +86,9 @@ public class CommentAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         android.util.Log.d("CommentAdapter", "bind pos=" + position + " type=" + getItemViewType(position) + " id=" + item.getId() + " parent=" + item.getParentId() + " remaining=" + item.getRemainingCount());
         if (holder instanceof MoreVH) {
             MoreVH h = (MoreVH) holder;
-            String text = "显示更多评论";
+            String text = "Show more comments";
             if (item.getRemainingCount() > 0) {
-                text = "                            —显示更多评论 (" + item.getRemainingCount() + ")—";
+                text = "                            —Show more comments (" + item.getRemainingCount() + ")—";
             }
             h.tvMore.setText(text);
             h.itemView.setOnClickListener(v -> {
@@ -99,7 +99,7 @@ public class CommentAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         VH h = (VH) holder;
         h.tvUser.setText(item.getUserName());
         if (item.getReplyToUserName() != null && !item.getReplyToUserName().isEmpty()) {
-            h.tvContent.setText("回复 " + item.getReplyToUserName() + "：" + item.getContent());
+            h.tvContent.setText("Reply to " + item.getReplyToUserName() + ": " + item.getContent());
         } else {
             h.tvContent.setText(item.getContent());
         }

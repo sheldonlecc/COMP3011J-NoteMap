@@ -30,13 +30,13 @@ public class MapUtil {
         if (second > 3600) {
             int hour = second / 3600;
             int miniate = (second % 3600) / 60;
-            return hour + "小时" + miniate + "分钟";
+            return hour + " hours " + miniate + " minutes";
         }
         if (second >= 60) {
             int miniate = second / 60;
-            return miniate + "分钟";
+            return miniate + " minutes";
         }
-        return second + "秒";
+        return second + " seconds";
     }
 
     public static String getFriendlyLength(int lenMeter) {
@@ -67,4 +67,3 @@ public class MapUtil {
     }
 
 }
-

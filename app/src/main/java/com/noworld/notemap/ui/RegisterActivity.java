@@ -55,19 +55,19 @@ public class RegisterActivity extends AppCompatActivity {
         String confirmPassword = getText(etConfirmPassword);
 
         if (TextUtils.isEmpty(email)) {
-            etEmail.setError("请输入邮箱");
+            etEmail.setError("Please enter email");
             return;
         }
         if (TextUtils.isEmpty(nickname)) {
-            etNickname.setError("请输入昵称");
+            etNickname.setError("Please enter nickname");
             return;
         }
         if (TextUtils.isEmpty(password) || password.length() < 6) {
-            etPassword.setError("密码至少6位");
+            etPassword.setError("Password must be at least 6 characters");
             return;
         }
         if (!password.equals(confirmPassword)) {
-            etConfirmPassword.setError("两次输入的密码不一致");
+            etConfirmPassword.setError("Passwords do not match");
             return;
         }
 
@@ -75,14 +75,14 @@ public class RegisterActivity extends AppCompatActivity {
         authRepository.register(email, password, nickname, new AuthRepository.LoginCallback() {
             @Override
             public void onSuccess(com.noworld.notemap.data.dto.LoginResponse.UserDto user) {
-                Toast.makeText(RegisterActivity.this, "注册成功", Toast.LENGTH_SHORT).show();
+                Toast.makeText(RegisterActivity.this, "Registration successful", Toast.LENGTH_SHORT).show();
                 finish();
             }
 
             @Override
             public void onError(@NonNull Throwable throwable) {
                 setLoading(false);
-                Toast.makeText(RegisterActivity.this, "注册失败: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(RegisterActivity.this, "Registration failed: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -94,6 +94,6 @@ public class RegisterActivity extends AppCompatActivity {
     private void setLoading(boolean loading) {
         isLoading = loading;
         btnRegister.setEnabled(!loading);
-        btnRegister.setText(loading ? "注册中..." : "立即注册");
+        btnRegister.setText(loading ? "Registering..." : "Sign up");
     }
 }

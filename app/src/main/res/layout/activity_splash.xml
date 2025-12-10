@@ -41,7 +41,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="探索未知，发现生活"
+            android:text="Explore the unknown, discover life"
             android:textColor="#666666"
             android:textSize="18sp"
             android:letterSpacing="0.1"/>

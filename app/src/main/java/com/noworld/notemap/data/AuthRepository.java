@@ -49,7 +49,7 @@ public class AuthRepository {
                     LoginResponse.UserDto savedUser = userStore.saveUser(user);
                     callback.onSuccess(savedUser);
                 } else {
-                    callback.onError(new IllegalStateException("登录失败"));
+                    callback.onError(new IllegalStateException("Login failed"));
                 }
             }
 
@@ -81,7 +81,7 @@ public class AuthRepository {
                     LoginResponse.UserDto savedUser = userStore.saveUser(user);
                     callback.onSuccess(savedUser);
                 } else {
-                    callback.onError(new IllegalStateException("注册失败"));
+                    callback.onError(new IllegalStateException("Registration failed"));
                 }
             }
 

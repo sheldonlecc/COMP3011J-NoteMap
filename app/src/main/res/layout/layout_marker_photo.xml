@@ -29,7 +29,7 @@
             android:paddingEnd="8dp"
             android:paddingTop="2dp"
             android:paddingBottom="2dp"
-            android:text="类型"
+            android:text="Type"
             android:textColor="@android:color/white"
             android:textSize="10sp" />
     </LinearLayout>

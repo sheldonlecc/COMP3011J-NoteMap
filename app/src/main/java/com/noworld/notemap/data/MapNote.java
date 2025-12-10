@@ -105,7 +105,7 @@ public class MapNote {
                 id != null ? id : "temp_" + System.nanoTime(),
                 title,
                 getCoverUrl(),
-                authorName != null ? authorName : "地图用户",
+                authorName != null ? authorName : "Map user",
                 authorAvatarUrl,
                 likeCount,
                 description,

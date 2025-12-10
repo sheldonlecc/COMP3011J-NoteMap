@@ -135,7 +135,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private final List<RegionItem> latestNotes = new ArrayList<>();
     private final List<RegionItem> displayedNotes = new ArrayList<>();
     private static final String[] ALL_NOTE_TYPES = new String[]{
-            "种草", "攻略", "测评", "分享", "合集", "教程", "开箱", "Vlog", "探店"
+            "Recommendation", "Guide", "Review", "Share", "Collection", "Tutorial", "Unboxing", "Vlog", "Store visit"
     };
     private String currentKeyword = "";
     private final Set<String> currentTypeFilters = new HashSet<>();
@@ -179,8 +179,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
         requestPermission = registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
             // 权限申请结果
-            Log.d(TAG, "权限申请结果: " + result);
-            showMsg(result ? "已获取到定位权限" : "权限申请失败");
+            Log.d(TAG, "Permission request result: " + result);
+            showMsg(result ? "Location permission granted" : "Permission request failed");
 
         });
 
@@ -207,10 +207,10 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         //第二个参数表示此menu的id值，在onOptionsItemSelected方法中通过id值判断是哪个menu被点击了
-        menu.add(Menu.NONE, 1, 1, "普通视图");
-        menu.add(Menu.NONE, 2, 2, "夜景视图");
-        menu.add(Menu.NONE, 3, 3, "卫星视图");
-        menu.add(Menu.NONE, 4, 4, "导航视图");
+        menu.add(Menu.NONE, 1, 1, "Normal view");
+        menu.add(Menu.NONE, 2, 2, "Night view");
+        menu.add(Menu.NONE, 3, 3, "Satellite view");
+        menu.add(Menu.NONE, 4, 4, "Navigation view");
         return true;
     }
 
@@ -222,19 +222,19 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         switch (item.getItemId()) {
             case 1:
                 aMap.setMapType(AMap.MAP_TYPE_NORMAL);
-                showMsg("切换为普通视图");
+                showMsg("Switched to normal view");
                 break;
             case 2:
                 aMap.setMapType(AMap.MAP_TYPE_NIGHT);
-                showMsg("切换为夜景视图");
+                showMsg("Switched to night view");
                 break;
             case 3:
                 aMap.setMapType(AMap.MAP_TYPE_SATELLITE);
-                showMsg("切换为卫星视图");
+                showMsg("Switched to satellite view");
                 break;
             case 4:
                 aMap.setMapType(AMap.MAP_TYPE_NAVI);
-                showMsg("切换为导航视图");
+                showMsg("Switched to navigation view");
                 break;
         }
         return true;
@@ -387,14 +387,14 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     @Override
     public void onLocationChanged(AMapLocation aMapLocation) {
         if (aMapLocation == null) {
-            showMsg("定位失败，aMapLocation 为空");
-            Log.e(TAG, "定位失败，aMapLocation 为空");
+            showMsg("Location failed: aMapLocation is null");
+            Log.e(TAG, "Location failed: aMapLocation is null");
             return;
         }
         // 获取定位结果
         if (aMapLocation.getErrorCode() == 0) {
             // 定位成功
-            Log.i(TAG, "定位成功");
+            Log.i(TAG, "Location succeeded");
             latLng = new LatLng(aMapLocation.getLatitude(), aMapLocation.getLongitude()); // 获取当前latlng坐标
 
             // 显示地图定位结果
@@ -409,7 +409,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             }
         } else {
             // 定位失败
-            showMsg("定位失败，错误：" + aMapLocation.getErrorInfo());
+            showMsg("Location failed: " + aMapLocation.getErrorInfo());
             Log.e(TAG, "location Error, ErrCode:"
                     + aMapLocation.getErrorCode() + ", errInfo:"
                     + aMapLocation.getErrorInfo());
@@ -504,7 +504,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
      * [唯一] 在地图加载完成后，初始化并开始计算点聚合数据
      */
     public void initClusterData() {
-        Log.d(TAG, "地图加载完成，准备渲染远程笔记...");
+        Log.d(TAG, "Map loaded, preparing to render remote notes...");
         isMapLoaded = true;
         attachClusterOverlay();
     }
@@ -521,8 +521,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
             @Override
             public void onError(@NonNull Throwable throwable) {
-                Log.e(TAG, "同步笔记失败", throwable);
-                runOnUiThread(() -> showMsg("同步笔记失败"));
+                Log.e(TAG, "Failed to sync notes", throwable);
+                runOnUiThread(() -> showMsg("Failed to sync notes"));
             }
         });
 
@@ -660,7 +660,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
     private void searchLocation(String keyword) {
         if (geocodeSearch == null || TextUtils.isEmpty(keyword)) {
-            showMsg("未找到相关地点/笔记");
+            showMsg("No related place/note found");
             return;
         }
         GeocodeQuery query = new GeocodeQuery(keyword, "");
@@ -669,7 +669,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
 
     private void showTypeFilterDialog() {
         List<String> types = new ArrayList<>();
-        types.add("全部");
+        types.add("All");
         for (String t : ALL_NOTE_TYPES) {
             types.add(t);
         }
@@ -681,9 +681,9 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             }
         }
         new AlertDialog.Builder(this)
-                .setTitle("按类型筛选")
+                .setTitle("Filter by type")
                 .setMultiChoiceItems(items, checked, (dialog, which, isChecked) -> {
-                    if (which == 0) { // 全部
+                    if (which == 0) { // All
                         for (int i = 1; i < checked.length; i++) {
                             checked[i] = false;
                             ((AlertDialog) dialog).getListView().setItemChecked(i, false);
@@ -698,7 +698,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                         }
                     }
                 })
-                .setPositiveButton("确定", (dialog, which) -> {
+                .setPositiveButton("Confirm", (dialog, which) -> {
                     if (currentTypeFilters.isEmpty()) {
                         // 如果用户只勾选了“全部”或全取消，则视为不过滤
                         currentTypeFilters.clear();
@@ -708,7 +708,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                         showSearchSheet();
                     }
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
@@ -731,7 +731,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         }
         searchSheetNotes.clear();
         searchSheetNotes.addAll(displayedNotes);
-        tvSearchResultTitle.setText("搜索结果 (" + displayedNotes.size() + ")");
+        tvSearchResultTitle.setText("Search results (" + displayedNotes.size() + ")");
         searchSheetAdapter.notifyDataSetChanged();
         int peek = (int) (getResources().getDisplayMetrics().heightPixels * 0.66f);
         searchSheetBehavior.setPeekHeight(peek);
@@ -777,7 +777,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             geocodeSearch = new GeocodeSearch(this);
             geocodeSearch.setOnGeocodeSearchListener(this);
         } catch (Exception e) {
-            Log.e(TAG, "初始化地理编码失败", e);
+            Log.e(TAG, "Failed to init geocoder", e);
         }
     }
 
@@ -913,13 +913,13 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     public void onGeocodeSearched(GeocodeResult geocodeResult, int rCode) {
         if (rCode != 1000 || geocodeResult == null || geocodeResult.getGeocodeAddressList() == null
                 || geocodeResult.getGeocodeAddressList().isEmpty()) {
-            showMsg("未找到该地点");
+            showMsg("Place not found");
             hideSearchSheet();
             return;
         }
         LatLonPoint point = geocodeResult.getGeocodeAddressList().get(0).getLatLonPoint();
         if (point == null || aMap == null) {
-            showMsg("未找到该地点");
+            showMsg("Place not found");
             return;
         }
         LatLng latLng = new LatLng(point.getLatitude(), point.getLongitude());
@@ -928,7 +928,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         }
         searchMarker = aMap.addMarker(new com.amap.api.maps.model.MarkerOptions()
                 .position(latLng)
-                .title("搜索地点")
+                .title("Searched location")
                 .snippet(geocodeResult.getGeocodeQuery().getLocationName()));
         aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
         showSearchSheet();
@@ -959,7 +959,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         } else if (fallbackMarkerBitmap != null) {
             imageView.setImageBitmap(fallbackMarkerBitmap);
         }
-        typeView.setText(!TextUtils.isEmpty(item.getNoteType()) ? item.getNoteType() : "推荐");
+        typeView.setText(toEnglishTag(item.getNoteType()));
         Bitmap markerBitmap = createBitmapFromView(markerView);
         float scale = getMarkerScale();
         if (scale != 1f && markerBitmap != null) {
@@ -1007,7 +1007,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                     .submit(256, 256);
             return futureTarget.get(6, TimeUnit.SECONDS);
         } catch (Exception e) {
-            Log.w(TAG, "加载 Marker 图片失败: " + url, e);
+            Log.w(TAG, "Failed to load marker image: " + url, e);
             return null;
         } finally {
             if (futureTarget != null) {
@@ -1049,21 +1049,21 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     public void onClick(Marker marker, List<ClusterItem> clusterItems) {
 
         // [调试点 1] 检查方法是否被调用
-        Log.d("ClusterDebug", "onClick(Marker, List) 方法被调用。");
+        Log.d("ClusterDebug", "onClick(Marker, List) invoked.");
 
         if (clusterItems == null || clusterItems.isEmpty()) {
-            Log.e("ClusterDebug", "错误：clusterItems 为空！");
+            Log.e("ClusterDebug", "Error: clusterItems is null!");
             return;
         }
 
         // [调试点 2] 检查点击类型
-        Log.d("ClusterDebug", "点击的聚合点包含 " + clusterItems.size() + " 个元素。");
+        Log.d("ClusterDebug", "Clicked cluster contains " + clusterItems.size() + " items.");
 
         // 判断是否是聚合点 (数量大于 1)
         if (clusterItems.size() > 1) {
 
             // [调试点 3] 确认进入了 "聚合点" 逻辑
-            Log.d("ClusterDebug", "进入了 if (clusterItems.size() > 1) 逻辑块。");
+                Log.d("ClusterDebug", "Entered multi-item cluster branch.");
 
             // 1. 转换为可传递的 RegionItem 列表
             ArrayList<RegionItem> notesList = new ArrayList<>();
@@ -1072,13 +1072,13 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                     notesList.add((RegionItem) item);
                 } else {
                     // [调试点 4] 检查类型转换失败
-                    Log.e("ClusterDebug", "错误：聚合体中的某个元素不是 RegionItem！");
+                    Log.e("ClusterDebug", "Error: an element in the cluster is not a RegionItem!");
                 }
             }
 
             if (notesList.isEmpty()) {
-                Log.e("ClusterDebug", "错误：notesList 为空，转换失败。");
-                Toast.makeText(this, "聚合点数据异常，无法解析。", Toast.LENGTH_SHORT).show();
+                Log.e("ClusterDebug", "Error: notesList empty, conversion failed.");
+                Toast.makeText(this, "Cluster data error, unable to parse.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -1087,40 +1087,40 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                 Object testItem = notesList.get(0);
                 if (!(testItem instanceof java.io.Serializable)) {
                     // 【最可能的崩溃点 A】
-                    Log.e("ClusterDebug", "【致命错误】: RegionItem.java 必须实现 java.io.Serializable 接口！");
-                    Toast.makeText(this, "崩溃原因: RegionItem 未实现 Serializable 接口!", Toast.LENGTH_LONG).show();
+                    Log.e("ClusterDebug", "Fatal: RegionItem.java must implement java.io.Serializable!");
+                    Toast.makeText(this, "Crash: RegionItem must implement Serializable", Toast.LENGTH_LONG).show();
                     return; // 阻止应用崩溃
                 }
-                Log.d("ClusterDebug", "检查通过：RegionItem 实现了 Serializable 接口。");
+                Log.d("ClusterDebug", "Check passed: RegionItem implements Serializable.");
 
             } catch (Exception e) {
-                Log.e("ClusterDebug", "检查 Serializable 时发生异常: " + e.getMessage());
+                Log.e("ClusterDebug", "Exception while checking Serializable: " + e.getMessage());
                 return;
             }
 
             // 2. 启动新的列表详情 Activity
-            Log.d("ClusterDebug", "准备创建 Intent，目标：ClusterDetailActivity.class");
+            Log.d("ClusterDebug", "Preparing Intent for ClusterDetailActivity.class");
             Intent intent = new Intent(this, ClusterDetailActivity.class);
 
-            Log.d("ClusterDebug", "准备传递 " + notesList.size() + " 个笔记。");
+            Log.d("ClusterDebug", "Preparing to pass " + notesList.size() + " notes.");
             intent.putExtra(ClusterDetailActivity.EXTRA_CLUSTER_NOTES, notesList);
 
             try {
                 // [调试点 6] 尝试启动 Activity
-                Log.d("ClusterDebug", "【关键步骤】正在调用 startActivity(intent)...");
+                Log.d("ClusterDebug", "Calling startActivity(intent)...");
                 startActivity(intent);
-                Log.d("ClusterDebug", "startActivity() 调用成功！"); // 如果看到这条，说明 Activity 启动了
+                Log.d("ClusterDebug", "startActivity() succeeded."); // 如果看到这条，说明 Activity 启动了
 
             } catch (android.content.ActivityNotFoundException e) {
                 // 【最可能的崩溃点 B】
-                Log.e("ClusterDebug", "【致命错误】: ActivityNotFoundException！");
-                Log.e("ClusterDebug", "请立即检查 AndroidManifest.xml 是否已注册 .ui.ClusterDetailActivity");
-                Toast.makeText(this, "崩溃原因: Activity 未在 Manifest 中注册!", Toast.LENGTH_LONG).show();
+                Log.e("ClusterDebug", "Fatal: ActivityNotFoundException!");
+                Log.e("ClusterDebug", "Check AndroidManifest.xml for .ui.ClusterDetailActivity registration");
+                Toast.makeText(this, "Crash: Activity not registered in Manifest!", Toast.LENGTH_LONG).show();
 
             } catch (Exception e) {
                 // 【其他崩溃点】
-                Log.e("ClusterDebug", "【致命错误】: startActivity 时发生未知异常 (可能是序列化失败): " + e.getMessage());
-                Toast.makeText(this, "崩溃: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                Log.e("ClusterDebug", "Fatal: Unknown exception during startActivity (possibly serialization): " + e.getMessage());
+                Toast.makeText(this, "Crash: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
 
         } else if (clusterItems.size() == 1) {
@@ -1163,7 +1163,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             if (latLng != null) {
                 aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18));
             } else {
-                showMsg("正在定位...");
+                showMsg("Locating...");
             }
         }
 
@@ -1184,6 +1184,24 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         }
     }
 
+    private String toEnglishTag(String raw) {
+        if (TextUtils.isEmpty(raw)) return "Recommended";
+        String t = raw.trim();
+        switch (t) {
+            case "种草": return "Recommendation";
+            case "攻略": return "Guide";
+            case "测评": return "Review";
+            case "分享": return "Share";
+            case "合集": return "Collection";
+            case "教程": return "Tutorial";
+            case "开箱": return "Unboxing";
+            case "探店": return "Store visit";
+            case "推荐": return "Recommended";
+            case "美食": return "Food";
+            case "风景": return "Scenery";
+            default: return t;
+        }
+    }
 
 
 }

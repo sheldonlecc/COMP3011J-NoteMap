@@ -48,7 +48,7 @@ public class SearchResultActivity extends AppCompatActivity {
             notes = (ArrayList<RegionItem>) data;
         }
         if (notes == null || notes.isEmpty()) {
-            Toast.makeText(this, "未找到相关笔记", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "No matching notes found", Toast.LENGTH_LONG).show();
             finish();
             return;
         }
@@ -57,7 +57,7 @@ public class SearchResultActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("搜索结果 (" + notes.size() + ")");
+            getSupportActionBar().setTitle("Search results (" + notes.size() + ")");
         }
 
         mapView = findViewById(R.id.map_view_search);
@@ -84,7 +84,7 @@ public class SearchResultActivity extends AppCompatActivity {
             LatLng latLng = item.getPosition();
             aMap.addMarker(new MarkerOptions()
                     .position(latLng)
-                    .title(!TextUtils.isEmpty(item.getTitle()) ? item.getTitle() : "笔记")
+                    .title(!TextUtils.isEmpty(item.getTitle()) ? item.getTitle() : "Note")
                     .snippet(item.getLocationName()));
             center = center == null ? latLng : new LatLng(
                     (center.latitude * count + latLng.latitude) / (count + 1),

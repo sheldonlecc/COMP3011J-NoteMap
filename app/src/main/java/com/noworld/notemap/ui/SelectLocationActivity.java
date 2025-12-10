@@ -49,7 +49,7 @@ public class SelectLocationActivity extends AppCompatActivity implements AMap.On
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("选择地点");
+            getSupportActionBar().setTitle("Select location");
         }
 
         mapView = findViewById(R.id.map_view_select);
@@ -73,12 +73,12 @@ public class SelectLocationActivity extends AppCompatActivity implements AMap.On
             geocodeSearch.setOnGeocodeSearchListener(this);
             initSearch(); // 确保 geocodeSearch 已初始化后再绑定搜索监听
         } catch (Exception e) {
-            Toast.makeText(this, "地理编码初始化失败", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Geocoder init failed", Toast.LENGTH_SHORT).show();
         }
 
         btnConfirm.setOnClickListener(v -> {
             if (selectedLatLng == null) {
-                Toast.makeText(this, "请点击地图选择位置", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Tap the map to choose a location", Toast.LENGTH_SHORT).show();
                 return;
             }
             getIntent().putExtra(EXTRA_LAT, selectedLatLng.latitude);
@@ -100,13 +100,13 @@ public class SelectLocationActivity extends AppCompatActivity implements AMap.On
 
     @Override
     public void onMapClick(LatLng latLng) {
-        setSelectedLocation(latLng, "解析中...");
+        setSelectedLocation(latLng, "Resolving address...");
         if (geocodeSearch != null) {
             RegeocodeQuery query = new RegeocodeQuery(new LatLonPoint(latLng.latitude, latLng.longitude), 200, GeocodeSearch.AMAP);
             geocodeSearch.getFromLocationAsyn(query);
         } else {
             // 没有地理编码也直接展示经纬度，允许确认返回
-            String addr = String.format("纬度:%.5f 经度:%.5f", latLng.latitude, latLng.longitude);
+            String addr = String.format("Lat:%.5f Lng:%.5f", latLng.latitude, latLng.longitude);
             setSelectedLocation(latLng, addr);
         }
     }
@@ -122,7 +122,7 @@ public class SelectLocationActivity extends AppCompatActivity implements AMap.On
             }
         } else {
             selectedAddress = "";
-            tvAddress.setText("解析失败");
+            tvAddress.setText("Failed to parse address");
         }
     }
 
@@ -130,7 +130,7 @@ public class SelectLocationActivity extends AppCompatActivity implements AMap.On
     public void onGeocodeSearched(com.amap.api.services.geocoder.GeocodeResult geocodeResult, int rCode) {
         if (rCode != 1000 || geocodeResult == null || geocodeResult.getGeocodeAddressList() == null
                 || geocodeResult.getGeocodeAddressList().isEmpty()) {
-            Toast.makeText(this, "未找到该地点", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Place not found", Toast.LENGTH_SHORT).show();
             return;
         }
         List<GeocodeAddress> list = geocodeResult.getGeocodeAddressList();
@@ -199,10 +199,10 @@ public class SelectLocationActivity extends AppCompatActivity implements AMap.On
         selectedAddress = addr;
         if (aMap != null) {
             aMap.clear();
-            aMap.addMarker(new MarkerOptions().position(latLng).title("选定位置"));
+            aMap.addMarker(new MarkerOptions().position(latLng).title("Selected location"));
         }
         if (addr == null || addr.isEmpty()) {
-            addr = String.format("纬度:%.5f 经度:%.5f", latLng.latitude, latLng.longitude);
+            addr = String.format("Lat:%.5f Lng:%.5f", latLng.latitude, latLng.longitude);
         }
         tvAddress.setText(addr);
     }
@@ -213,7 +213,7 @@ public class SelectLocationActivity extends AppCompatActivity implements AMap.On
             addrs.add(g.getFormatAddress());
         }
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("选择地点")
+                .setTitle("Choose location")
                 .setItems(addrs.toArray(new String[0]), (dialog, which) -> {
                     GeocodeAddress g = list.get(which);
                     LatLonPoint p = g.getLatLonPoint();

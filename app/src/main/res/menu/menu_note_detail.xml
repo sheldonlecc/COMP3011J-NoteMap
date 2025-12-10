@@ -4,16 +4,16 @@
 
     <item
         android:id="@+id/action_privacy"
-        android:title="设为仅自己可见"
+        android:title="Set to private"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_edit"
-        android:title="修改笔记内容"
+        android:title="Edit note"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_delete"
-        android:title="删除笔记"
+        android:title="Delete note"
         app:showAsAction="never" />
 </menu>

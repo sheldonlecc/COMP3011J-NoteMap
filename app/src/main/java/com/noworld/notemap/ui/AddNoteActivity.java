@@ -70,7 +70,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     private GeocodeSearch geocodeSearch;
 
     private final CharSequence[] noteTypes = {
-            "种草", "攻略", "测评", "分享", "合集", "教程", "开箱", "Vlog", "探店"
+            "Recommendation", "Guide", "Review", "Share", "Collection", "Tutorial", "Unboxing", "Vlog", "Store visit"
     };
 
     private AliNoteRepository noteRepository;
@@ -174,7 +174,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                             }
                         }
                         if (selectedImageUris.size() >= MAX_IMAGES) {
-                            Toast.makeText(this, "最多选择9张图片", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "You can select up to 9 images", Toast.LENGTH_SHORT).show();
                         }
                         imagePreviewAdapter.notifyDataSetChanged();
                     }
@@ -188,7 +188,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                     if (granted) {
                         openGallery();
                     } else {
-                        Toast.makeText(this, "需要相册读取权限以选择图片", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Gallery permission is required to choose images", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -204,7 +204,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                         if (lat != 0 && lng != 0) {
                             currentLat = lat;
                             currentLng = lng;
-                            tvLocationValue.setText(address != null ? address : "手动选点");
+                            tvLocationValue.setText(address != null ? address : "Pick manually");
                         }
                     }
                 }
@@ -244,7 +244,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
     private void uploadAllImages(List<Uri> uris, UploadAllCallback callback) {
         if (uris == null || uris.isEmpty()) {
-            callback.onError(new IllegalArgumentException("没有选择图片"));
+            callback.onError(new IllegalArgumentException("No images selected"));
             return;
         }
         List<String> uploaded = new ArrayList<>();
@@ -273,7 +273,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
     private void showNoteTypePicker() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("选择笔记类型");
+        builder.setTitle("Choose note type");
         builder.setItems(noteTypes, (dialog, which) -> {
             String selectedType = noteTypes[which].toString();
             tvNoteTypeValue.setText(selectedType);
@@ -282,18 +282,18 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     }
 
     private void showLocationChoiceDialog() {
-        String[] options = {"使用当前位置", "手动选点"};
+        String[] options = {"Use current location", "Pick manually"};
         new AlertDialog.Builder(this)
-                .setTitle("选择拍摄地点")
+                .setTitle("Choose location")
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
                         if (currentLat != 0 && currentLng != 0) {
-                            tvLocationValue.setText("正在获取地址...");
+                            tvLocationValue.setText("Fetching address...");
                             LatLonPoint latLonPoint = new LatLonPoint(currentLat, currentLng);
                             RegeocodeQuery query = new RegeocodeQuery(latLonPoint, 200, GeocodeSearch.AMAP);
                             geocodeSearch.getFromLocationAsyn(query);
                         } else {
-                            Toast.makeText(this, "无法获取当前位置, 请返回地图重试", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "Cannot get current location, please return to the map and try again", Toast.LENGTH_SHORT).show();
                         }
                     } else {
                         Intent intent = new Intent(this, SelectLocationActivity.class);
@@ -322,11 +322,11 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         String locationName = tvLocationValue.getText() != null ? tvLocationValue.getText().toString().trim() : "";
 
         if (TextUtils.isEmpty(title)) {
-            Toast.makeText(this, "请输入标题", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please enter a title", Toast.LENGTH_SHORT).show();
             return;
         }
         if (TextUtils.isEmpty(story)) {
-            Toast.makeText(this, "请输入正文", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please enter content", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -340,38 +340,38 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
         // --- 发布模式下的额外校验 ---
         if (TextUtils.isEmpty(noteType)) {
-            Toast.makeText(this, "请选择笔记类型", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please select a note type", Toast.LENGTH_SHORT).show();
             return;
         }
         if (selectedImageUris.isEmpty()) {
-            Toast.makeText(this, "请选择至少一张图片", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please select at least one image", Toast.LENGTH_SHORT).show();
             return;
         }
         if (selectedImageUris.size() > MAX_IMAGES) {
-            Toast.makeText(this, "最多可上传9张图片", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "You can upload up to 9 images", Toast.LENGTH_SHORT).show();
             return;
         }
         if (currentLat == 0 || currentLng == 0) {
-            Toast.makeText(this, "无法获取定位，请返回地图重试", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Location unavailable, please return to the map and try again", Toast.LENGTH_SHORT).show();
             return;
         }
         if (TextUtils.isEmpty(tokenStore.getToken())) {
-            Toast.makeText(this, "请先登录再发布笔记", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please log in before publishing", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, LoginActivity.class));
             return;
         }
         // ----------------------------------------------------------------------
 
 
-        final String locationNameFinal = TextUtils.isEmpty(locationName) ? "未知地点" : locationName;
-        setPublishing(true, "发布中...");
+        final String locationNameFinal = TextUtils.isEmpty(locationName) ? "Unknown location" : locationName;
+        setPublishing(true, "Publishing...");
 
         // 发布模式：需要上传图片
         uploadAllImages(selectedImageUris, new UploadAllCallback() {
             @Override
             public void onSuccess(List<String> imageUrls) {
                 String authorId = userStore.ensureUid(userStore.getUid());
-                String authorName = TextUtils.isEmpty(userStore.getUsername()) ? "地图用户" : userStore.getUsername();
+                String authorName = TextUtils.isEmpty(userStore.getUsername()) ? "Map user" : userStore.getUsername();
                 String avatarUrl = userStore.getAvatarUrl();
                 MapNote note = new MapNote(
                         title,
@@ -389,7 +389,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                     @Override
                     public void onSuccess() {
                         runOnUiThread(() -> {
-                            Toast.makeText(AddNoteActivity.this, "发布成功！", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(AddNoteActivity.this, "Published successfully!", Toast.LENGTH_SHORT).show();
                             finish();
                         });
                     }
@@ -397,8 +397,8 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                     @Override
                     public void onError(@NonNull Throwable throwable) {
                         runOnUiThread(() -> {
-                            Toast.makeText(AddNoteActivity.this, "发布失败：" + throwable.getMessage(), Toast.LENGTH_LONG).show();
-                            setPublishing(false, "发布");
+                            Toast.makeText(AddNoteActivity.this, "Publish failed: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
+                            setPublishing(false, "Publish");
                         });
                     }
                 });
@@ -407,8 +407,8 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             @Override
             public void onError(@NonNull Throwable throwable) {
                 runOnUiThread(() -> {
-                    Toast.makeText(AddNoteActivity.this, "图片上传失败：" + throwable.getMessage(), Toast.LENGTH_LONG).show();
-                    setPublishing(false, "发布");
+                    Toast.makeText(AddNoteActivity.this, "Image upload failed: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
+                    setPublishing(false, "Publish");
                 });
             }
         });
@@ -419,11 +419,11 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
      */
     private void updateNoteContent(String newTitle, String newDescription) {
         if (mEditNote == null || mEditNote.getNoteId() == null) {
-            Toast.makeText(this, "笔记ID缺失，无法保存修改", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Note ID missing, cannot save changes", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        setPublishing(true, "保存中...");
+        setPublishing(true, "Saving...");
 
         // 仅发送修改后的标题和描述
         UpdateNoteRequest request = new UpdateNoteRequest(newTitle, newDescription);
@@ -432,7 +432,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             @Override
             public void onSuccess() {
                 runOnUiThread(() -> {
-                    Toast.makeText(AddNoteActivity.this, "笔记内容保存成功", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(AddNoteActivity.this, "Changes saved", Toast.LENGTH_SHORT).show();
 
                     // 设置结果，通知上一个 Activity (NoteDetailActivity) 刷新
                     setResult(RESULT_OK);
@@ -443,8 +443,8 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             @Override
             public void onError(Throwable t) {
                 runOnUiThread(() -> {
-                    Toast.makeText(AddNoteActivity.this, "保存修改失败: " + t.getMessage(), Toast.LENGTH_LONG).show();
-                    setPublishing(false, "保存修改");
+                    Toast.makeText(AddNoteActivity.this, "Failed to save changes: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                    setPublishing(false, "Save changes");
                 });
             }
         });
@@ -465,10 +465,10 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                 String address = result.getRegeocodeAddress().getFormatAddress();
                 tvLocationValue.setText(address);
             } else {
-                tvLocationValue.setText("未找到地址");
+                tvLocationValue.setText("Address not found");
             }
         } else {
-            tvLocationValue.setText("获取地址失败: " + rCode);
+            tvLocationValue.setText("Failed to get address: " + rCode);
         }
     }
 
@@ -574,9 +574,9 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         }
 
         // 4. 按钮文字和标题
-        btnPublish.setText("保存修改");
+        btnPublish.setText("Save changes");
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("编辑笔记");
+            getSupportActionBar().setTitle("Edit note");
         }
     }
 }

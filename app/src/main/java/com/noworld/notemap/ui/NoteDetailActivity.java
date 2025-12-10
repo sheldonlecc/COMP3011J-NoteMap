@@ -153,7 +153,7 @@ public class NoteDetailActivity extends AppCompatActivity {
             checkIsAuthor(); // 检查权限
             populateData();
         } else {
-            Toast.makeText(this, "加载笔记数据失败", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Failed to load note data", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -192,9 +192,9 @@ public class NoteDetailActivity extends AppCompatActivity {
             MenuItem privacyItem = menu.findItem(R.id.action_privacy);
             if (privacyItem != null) {
                 if (mNote.isPrivate()) {
-                    privacyItem.setTitle("设为公开笔记");
+                    privacyItem.setTitle("Make public");
                 } else {
-                    privacyItem.setTitle("设为仅自己可见");
+                    privacyItem.setTitle("Make private");
                 }
             }
         }
@@ -229,14 +229,14 @@ public class NoteDetailActivity extends AppCompatActivity {
                     mNote.setPrivate(newStatus);
                     // 刷新菜单文字
                     invalidateOptionsMenu();
-                    String msg = newStatus ? "已设为仅自己可见" : "已设为公开";
+                    String msg = newStatus ? "Set to private" : "Set to public";
                     Toast.makeText(NoteDetailActivity.this, msg, Toast.LENGTH_SHORT).show();
                 });
             }
 
             @Override
             public void onError(Throwable t) {
-                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "设置失败: " + t.getMessage(), Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "Failed to update: " + t.getMessage(), Toast.LENGTH_SHORT).show());
             }
         });
     }
@@ -244,25 +244,25 @@ public class NoteDetailActivity extends AppCompatActivity {
     // 处理：删除笔记
     private void handleDeleteNote() {
         new AlertDialog.Builder(this)
-                .setTitle("删除笔记")
-                .setMessage("确定要删除这条笔记吗？删除后不可恢复。")
-                .setPositiveButton("删除", (dialog, which) -> {
+                .setTitle("Delete note")
+                .setMessage("Delete this note? This cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> {
                     noteRepository.deleteNote(mNote.getNoteId(), new AliNoteRepository.SimpleCallback() {
                         @Override
                         public void onSuccess() {
                             runOnUiThread(() -> {
-                                Toast.makeText(NoteDetailActivity.this, "删除成功", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(NoteDetailActivity.this, "Deleted", Toast.LENGTH_SHORT).show();
                                 finish(); // 关闭详情页，返回列表
                             });
                         }
 
                         @Override
                         public void onError(Throwable t) {
-                            runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "删除失败: " + t.getMessage(), Toast.LENGTH_SHORT).show());
+                            runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "Delete failed: " + t.getMessage(), Toast.LENGTH_SHORT).show());
                         }
                     });
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
@@ -334,7 +334,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("笔记详情");
+            getSupportActionBar().setTitle("Note Details");
         }
     }
 
@@ -353,7 +353,7 @@ public class NoteDetailActivity extends AppCompatActivity {
     private void populateData() {
         tvDetailTitle.setText(mNote.getTitle());
         tvDetailDescription.setText(mNote.getDescription());
-        tvDetailType.setText(mNote.getNoteType() != null ? "#" + mNote.getNoteType() : "#推荐");
+        tvDetailType.setText("#" + toEnglishTag(mNote.getNoteType()));
         tvDetailLocation.setText(mNote.getLocationName());
 
         if (tvDetailAuthor != null) {
@@ -370,7 +370,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         if (tvDetailTime != null) {
             String time = mNote.getCreateTime();
             // 【关键修改】如果时间为空，显示空字符串而不是旧的硬编码日期
-            tvDetailTime.setText("发布于 " + (time != null && !time.isEmpty() ? time : "未知时间"));
+            tvDetailTime.setText("Published at " + (time != null && !time.isEmpty() ? time : "Unknown time"));
         }
 
         refreshLikeState();
@@ -409,7 +409,7 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     private void handleLikeClick() {
         if (tokenStore.getToken() == null || tokenStore.getToken().isEmpty()) {
-            Toast.makeText(this, "请先登录", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please log in first", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, LoginActivity.class));
             return;
         }
@@ -433,14 +433,14 @@ public class NoteDetailActivity extends AppCompatActivity {
             @Override
             public void onRequireLogin() {
                 runOnUiThread(() -> {
-                    Toast.makeText(NoteDetailActivity.this, "登录已过期", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NoteDetailActivity.this, "Login expired", Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(NoteDetailActivity.this, LoginActivity.class));
                 });
             }
 
             @Override
             public void onError(@NonNull Throwable e) {
-                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "操作失败: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "Operation failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
             }
         });
     }
@@ -469,7 +469,7 @@ public class NoteDetailActivity extends AppCompatActivity {
 
             @Override
             public void onError(@NonNull Throwable throwable) {
-                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "加载评论失败: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "Failed to load comments: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
             }
         });
     }
@@ -480,7 +480,25 @@ public class NoteDetailActivity extends AppCompatActivity {
             tvCommentCount.setText(String.valueOf(count));
         }
         if (tvCommentSectionTitle != null) {
-            tvCommentSectionTitle.setText("共 " + count + " 条评论");
+            tvCommentSectionTitle.setText("Comments: " + count);
+        }
+    }
+
+    private String toEnglishTag(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return "Recommended";
+        switch (raw.trim()) {
+            case "种草": return "Recommendation";
+            case "攻略": return "Guide";
+            case "测评": return "Review";
+            case "分享": return "Share";
+            case "合集": return "Collection";
+            case "教程": return "Tutorial";
+            case "开箱": return "Unboxing";
+            case "探店": return "Store visit";
+            case "推荐": return "Recommended";
+            case "美食": return "Food";
+            case "风景": return "Scenery";
+            default: return raw.trim();
         }
     }
 
@@ -576,10 +594,10 @@ public class NoteDetailActivity extends AppCompatActivity {
     private void onCommentLongPress(CommentItem item) {
         if (!isOwnComment(item)) return;
         new AlertDialog.Builder(this)
-                .setTitle("删除评论")
-                .setMessage("确定要删除这条评论吗？")
-                .setPositiveButton("删除", (d, w) -> deleteComment(item))
-                .setNegativeButton("取消", null)
+                .setTitle("Delete comment")
+                .setMessage("Delete this comment?")
+                .setPositiveButton("Delete", (d, w) -> deleteComment(item))
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
@@ -590,21 +608,21 @@ public class NoteDetailActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     removeCommentById(item.getId());
                     rebuildDisplayComments();
-                    Toast.makeText(NoteDetailActivity.this, "已删除", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NoteDetailActivity.this, "Deleted", Toast.LENGTH_SHORT).show();
                 });
             }
 
             @Override
             public void onRequireLogin() {
                 runOnUiThread(() -> {
-                    Toast.makeText(NoteDetailActivity.this, "请先登录再删除", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NoteDetailActivity.this, "Please log in before deleting", Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(NoteDetailActivity.this, LoginActivity.class));
                 });
             }
 
             @Override
             public void onError(@NonNull Throwable throwable) {
-                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "删除失败: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "Delete failed: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
             }
         });
     }
@@ -728,7 +746,7 @@ public class NoteDetailActivity extends AppCompatActivity {
     private boolean ensureLoggedInForComment() {
         String token = tokenStore.getToken();
         if (token == null || token.isEmpty()) {
-            Toast.makeText(this, "请先登录再发表评论", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please log in before commenting", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, LoginActivity.class));
             return false;
         }
@@ -750,7 +768,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                 if (commentInput == null) return;
                 String content = commentInput.getText().toString().trim();
                 if (TextUtils.isEmpty(content)) {
-                    Toast.makeText(NoteDetailActivity.this, "评论内容不能为空", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NoteDetailActivity.this, "Comment cannot be empty", Toast.LENGTH_SHORT).show();
                     return;
                 }
                 submitComment(content);
@@ -760,7 +778,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         }
 
         if (commentInput != null) {
-            String hint = replyTarget != null ? ("回复 " + replyTarget.getUserName()) : "友善评论，理性发言";
+            String hint = replyTarget != null ? ("Reply to " + replyTarget.getUserName()) : "Be kind and stay rational";
             commentInput.setHint(hint);
             commentInput.setText("");
             commentInput.requestFocus();
@@ -807,7 +825,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                     }
                     rawComments.add(0, displayItem);
                     rebuildDisplayComments();
-                    Toast.makeText(NoteDetailActivity.this, "评论成功", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NoteDetailActivity.this, "Comment posted", Toast.LENGTH_SHORT).show();
                     replyTarget = null;
                     if (commentInput != null) {
             commentInput.setText("");
@@ -823,7 +841,7 @@ public class NoteDetailActivity extends AppCompatActivity {
             @Override
             public void onRequireLogin() {
                 runOnUiThread(() -> {
-                    Toast.makeText(NoteDetailActivity.this, "登录已过期，请重新登录", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NoteDetailActivity.this, "Login expired, please log in again", Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(NoteDetailActivity.this, LoginActivity.class));
                     replyTarget = null;
                 });
@@ -831,7 +849,7 @@ public class NoteDetailActivity extends AppCompatActivity {
 
             @Override
             public void onError(@NonNull Throwable throwable) {
-                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "评论失败: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "Comment failed: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
             }
         });
     }
@@ -884,14 +902,14 @@ public class NoteDetailActivity extends AppCompatActivity {
             @Override
             public void onRequireLogin() {
                 runOnUiThread(() -> {
-                    Toast.makeText(NoteDetailActivity.this, "请先登录再点赞评论", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(NoteDetailActivity.this, "Please log in before liking comments", Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(NoteDetailActivity.this, LoginActivity.class));
                 });
             }
 
             @Override
             public void onError(@NonNull Throwable throwable) {
-                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "操作失败: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(NoteDetailActivity.this, "Operation failed: " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
             }
         });
     }

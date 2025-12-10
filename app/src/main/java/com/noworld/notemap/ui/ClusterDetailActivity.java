@@ -34,7 +34,7 @@ public class ClusterDetailActivity extends AppCompatActivity {
         if (notesList != null && !notesList.isEmpty()) {
             initRecyclerView();
         } else {
-            Toast.makeText(this, "未接收到任何笔记数据。", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "No note data received.", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -43,7 +43,7 @@ public class ClusterDetailActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("附近笔记 (" + (notesList != null ? notesList.size() : 0) + ")");
+            getSupportActionBar().setTitle("Nearby notes (" + (notesList != null ? notesList.size() : 0) + ")");
         }
         rvClusterNotes = findViewById(R.id.rv_cluster_notes);
     }

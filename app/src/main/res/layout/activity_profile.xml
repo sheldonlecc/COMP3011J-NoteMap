@@ -76,7 +76,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp"
-                        android:text="[用户名]"
+                        android:text="[Username]"
                         android:textColor="@android:color/white"
                         android:textSize="20sp"
                         android:textStyle="bold"
@@ -102,7 +102,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:layout_marginEnd="16dp"
-                        android:text="个人签名..."
+                        android:text="Signature..."
                         android:textColor="#CCFFFFFF"
                         android:textSize="14sp"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -116,7 +116,7 @@
                         android:layout_marginTop="8dp"
                         android:layout_marginEnd="16dp"
                         android:backgroundTint="@android:color/white"
-                        android:text="去登录"
+                        android:text="Log in"
                         android:textColor="@android:color/black"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -130,7 +130,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 app:layout_collapseMode="pin"
-                app:title="个人主页"
+                app:title="Profile"
                 app:titleTextColor="@android:color/white" />
 
         </com.google.android.material.appbar.CollapsingToolbarLayout>
@@ -155,11 +155,11 @@
 
             <com.google.android.material.tabs.TabItem
                 android:id="@+id/tab_works"
-                android:text="作品" />
+                android:text="Works" />
 
             <com.google.android.material.tabs.TabItem
                 android:id="@+id/tab_likes"
-                android:text="点赞" />
+                android:text="Likes" />
         </com.google.android.material.tabs.TabLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -181,7 +181,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="暂无作品"
+            android:text="No works yet"
             android:textSize="16sp"
             android:visibility="gone" />
 
@@ -190,7 +190,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="点赞列表敬请期待"
+            android:text="Likes list coming soon"
             android:textSize="16sp"
             android:visibility="gone" />
 

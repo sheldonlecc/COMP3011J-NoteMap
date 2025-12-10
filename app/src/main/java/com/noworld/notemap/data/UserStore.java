@@ -50,7 +50,7 @@ public class UserStore {
                 ? user.username
                 : (existing != null && !TextUtils.isEmpty(existing.username)
                 ? existing.username
-                : "地图用户");
+                : "Map user");
         String finalAvatar = !TextUtils.isEmpty(user != null ? user.avatarUrl : null)
                 ? user.avatarUrl
                 : (existing != null ? existing.avatarUrl : null);

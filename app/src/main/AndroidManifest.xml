@@ -64,19 +64,19 @@
 
         <activity
             android:name=".ui.NoteDetailActivity"
-            android:label="笔记详情"
+            android:label="Note Details"
             android:exported="false"
             android:parentActivityName=".ui.ClusterDetailActivity" />
 
         <activity
             android:name=".ui.AddNoteActivity"
-            android:label="创建笔记"
+            android:label="Create Note"
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
             android:name=".ui.ProfileActivity"
-            android:label="个人主页"
+            android:label="Profile"
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
 
@@ -87,18 +87,18 @@
         <activity
             android:name=".ui.SelectLocationActivity"
             android:exported="false"
-            android:label="选择地点"
+            android:label="Select Location"
             android:parentActivityName=".ui.AddNoteActivity" />
 
         <activity
             android:name=".ui.ClusterDetailActivity"
-            android:label="附近笔记列表"
+            android:label="Nearby Notes"
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
             android:name=".ui.SearchResultActivity"
-            android:label="搜索结果"
+            android:label="Search Results"
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
 

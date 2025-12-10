@@ -209,7 +209,7 @@ public class ProfileActivity extends AppCompatActivity {
                             loadBlurBackground(uri);
                             // B. 本地保存
                             userStore.setProfileBg(uri.toString());
-                            Toast.makeText(this, "背景已更换", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "Background updated", Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
@@ -221,7 +221,7 @@ public class ProfileActivity extends AppCompatActivity {
                     if (granted) {
                         openGallery();
                     } else {
-                        Toast.makeText(this, "需要相册权限以选择图片", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Photo permission required to choose an image", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -257,13 +257,13 @@ public class ProfileActivity extends AppCompatActivity {
     // 点击背景触发
     private void handleBackgroundClick() {
         new AlertDialog.Builder(this)
-                .setTitle("更换背景")
-                .setMessage("是否更换个人主页背景图像？")
-                .setPositiveButton("更换", (dialog, which) -> {
+                .setTitle("Change background")
+                .setMessage("Replace the profile background image?")
+                .setPositiveButton("Change", (dialog, which) -> {
                     isPickingAvatar = false; // 标记：我在选背景
                     ensurePermissionAndPick();
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
@@ -344,7 +344,7 @@ public class ProfileActivity extends AppCompatActivity {
                             userStore.updateAvatar(fileUrl);
                             tempAvatarUri = null;
                             updateProfileUI();
-                            Toast.makeText(ProfileActivity.this, "头像已同步到云端", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ProfileActivity.this, "Avatar synced to cloud", Toast.LENGTH_SHORT).show();
                         });
                     }
 
@@ -353,7 +353,7 @@ public class ProfileActivity extends AppCompatActivity {
                         runOnUiThread(() -> {
                             isAvatarUploading = false;
                             updateLoadingState();
-                            Toast.makeText(ProfileActivity.this, "云端同步失败: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ProfileActivity.this, "Cloud sync failed: " + t.getMessage(), Toast.LENGTH_SHORT).show();
                         });
                     }
                 });
@@ -364,7 +364,7 @@ public class ProfileActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     isAvatarUploading = false;
                     updateLoadingState();
-                    Toast.makeText(ProfileActivity.this, "图片上传失败: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(ProfileActivity.this, "Image upload failed: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -373,18 +373,18 @@ public class ProfileActivity extends AppCompatActivity {
     private void showEditNicknameDialog() {
         String currentName = userStore.getUsername();
         final EditText input = new EditText(this);
-        input.setHint("请输入昵称");
+        input.setHint("Enter nickname");
         if (!TextUtils.isEmpty(currentName)) {
             input.setText(currentName);
             input.setSelection(currentName.length());
         }
         new AlertDialog.Builder(this)
-                .setTitle("修改昵称")
+                .setTitle("Edit nickname")
                 .setView(input)
-                .setPositiveButton("保存", (dialog, which) -> {
+                .setPositiveButton("Save", (dialog, which) -> {
                     String newName = input.getText() != null ? input.getText().toString().trim() : "";
                     if (TextUtils.isEmpty(newName)) {
-                        Toast.makeText(this, "昵称不能为空", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Nickname cannot be empty", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -395,19 +395,19 @@ public class ProfileActivity extends AppCompatActivity {
                             runOnUiThread(() -> {
                                 userStore.updateUsername(newName);
                                 updateProfileUI();
-                                Toast.makeText(ProfileActivity.this, "昵称已同步", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(ProfileActivity.this, "Nickname updated", Toast.LENGTH_SHORT).show();
                             });
                         }
 
                         @Override
                         public void onError(Throwable t) {
                             runOnUiThread(() -> {
-                                Toast.makeText(ProfileActivity.this, "修改失败: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                                Toast.makeText(ProfileActivity.this, "Update failed: " + t.getMessage(), Toast.LENGTH_SHORT).show();
                             });
                         }
                     });
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
@@ -426,10 +426,10 @@ public class ProfileActivity extends AppCompatActivity {
     private void updateProfileUI() {
         String token = tokenStore.getToken();
         if (TextUtils.isEmpty(token)) {
-            tvUsername.setText("未登录用户");
-            tvAccountId.setText("点击头像登录");
-            tvSignature.setText("登录后可同步发布和点赞记录");
-            btnProfileAction.setText("去登录");
+            tvUsername.setText("Guest");
+            tvAccountId.setText("Tap avatar to log in");
+            tvSignature.setText("Log in to sync posts and likes");
+            btnProfileAction.setText("Log in");
             btnProfileAction.setOnClickListener(v -> startLogin());
             Glide.with(this).load(R.drawable.ic_profile).into(ivAvatar);
             return;
@@ -441,7 +441,7 @@ public class ProfileActivity extends AppCompatActivity {
             LoginResponse.UserDto patched = user != null ? user : new LoginResponse.UserDto();
             patched.uid = tokenUid;
             if (TextUtils.isEmpty(patched.username)) {
-                patched.username = "已登录用户";
+                patched.username = "Logged-in user";
             }
             patched = userStore.saveUser(patched);
             user = patched;
@@ -451,23 +451,23 @@ public class ProfileActivity extends AppCompatActivity {
         String username = user != null ? user.username : null;
         String avatarUrl = user != null ? user.avatarUrl : null;
 
-        tvUsername.setText(TextUtils.isEmpty(username) ? "已登录用户" : username);
-        tvAccountId.setText("UID: " + (TextUtils.isEmpty(uid) ? "未知" : uid));
-        tvSignature.setText("欢迎回来");
+        tvUsername.setText(TextUtils.isEmpty(username) ? "Logged-in user" : username);
+        tvAccountId.setText("UID: " + (TextUtils.isEmpty(uid) ? "Unknown" : uid));
+        tvSignature.setText("Welcome back");
 
         // 【视觉优化】确保文字在背景图上可见
         tvUsername.setTextColor(ContextCompat.getColor(this, R.color.white));
         tvAccountId.setTextColor(0xDDFFFFFF);
         tvSignature.setTextColor(0xDDFFFFFF);
 
-        btnProfileAction.setText("退出登录");
+        btnProfileAction.setText("Log out");
         btnProfileAction.setOnClickListener(v -> {
             tokenStore.clear();
             userStore.clear();
             isNotesLoading = false;
             isAvatarUploading = false;
             updateLoadingState();
-            Toast.makeText(this, "已退出登录", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show();
             updateProfileUI();
             myRegionItems.clear();
             likedRegionItems.clear();
@@ -499,7 +499,7 @@ public class ProfileActivity extends AppCompatActivity {
         String uid = userStore.getUid();
         if (TextUtils.isEmpty(token) || TextUtils.isEmpty(uid)) {
             rvMyNotes.setVisibility(View.GONE);
-            tvEmpty.setText("登录后查看我的作品");
+            tvEmpty.setText("Log in to view my notes");
             tvEmpty.setVisibility(View.VISIBLE);
             return;
         }
@@ -519,7 +519,7 @@ public class ProfileActivity extends AppCompatActivity {
                         }
                     }
                     if (myRegionItems.isEmpty()) {
-                        tvEmpty.setText("暂无作品");
+                        tvEmpty.setText("No works yet");
                         tvEmpty.setVisibility(View.VISIBLE);
                         rvMyNotes.setVisibility(View.GONE);
                     } else {
@@ -535,7 +535,7 @@ public class ProfileActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     isNotesLoading = false;
                     updateLoadingState();
-                    tvEmpty.setText("加载失败: " + throwable.getMessage());
+                    tvEmpty.setText("Load failed: " + throwable.getMessage());
                     tvEmpty.setVisibility(View.VISIBLE);
                     rvMyNotes.setVisibility(View.GONE);
                 });
@@ -549,7 +549,7 @@ public class ProfileActivity extends AppCompatActivity {
         if (TextUtils.isEmpty(token) || TextUtils.isEmpty(uid)) {
             if (tabLayout.getSelectedTabPosition() == 1) {
                 rvMyNotes.setVisibility(View.GONE);
-                tvEmpty.setText("登录后查看点赞作品");
+                tvEmpty.setText("Log in to view liked notes");
                 tvEmpty.setVisibility(View.VISIBLE);
             }
             return;
@@ -564,7 +564,7 @@ public class ProfileActivity extends AppCompatActivity {
                 likedRegionItems.clear();
                 likedCardsAdapter.notifyDataSetChanged();
                 rvMyNotes.setVisibility(View.GONE);
-                tvEmpty.setText("暂无点赞");
+                tvEmpty.setText("No likes yet");
                 tvEmpty.setVisibility(View.VISIBLE);
             }
             return;
@@ -587,7 +587,7 @@ public class ProfileActivity extends AppCompatActivity {
                     if (tabLayout.getSelectedTabPosition() == 1) {
                         if (likedRegionItems.isEmpty()) {
                             rvMyNotes.setVisibility(View.GONE);
-                            tvEmpty.setText("暂无点赞");
+                            tvEmpty.setText("No likes yet");
                             tvEmpty.setVisibility(View.VISIBLE);
                         } else {
                             tvEmpty.setVisibility(View.GONE);
@@ -603,7 +603,7 @@ public class ProfileActivity extends AppCompatActivity {
                     isNotesLoading = false;
                     updateLoadingState();
                     if (tabLayout.getSelectedTabPosition() == 1) {
-                        tvEmpty.setText("加载失败: " + throwable.getMessage());
+                        tvEmpty.setText("Load failed: " + throwable.getMessage());
                         tvEmpty.setVisibility(View.VISIBLE);
                         rvMyNotes.setVisibility(View.GONE);
                     }
@@ -624,7 +624,7 @@ public class ProfileActivity extends AppCompatActivity {
                     likedCardsAdapter.notifyItemRemoved(idx);
                     if (likedRegionItems.isEmpty()) {
                         rvMyNotes.setVisibility(View.GONE);
-                        tvEmpty.setText("暂无点赞");
+                        tvEmpty.setText("No likes yet");
                         tvEmpty.setVisibility(View.VISIBLE);
                     }
                     likedStore.toggle(userStore.getUid(), regionItem.getNoteId(), false);
@@ -641,7 +641,7 @@ public class ProfileActivity extends AppCompatActivity {
 
             @Override
             public void onError(@NonNull Throwable throwable) {
-                Toast.makeText(ProfileActivity.this, "取消点赞失败: " + throwable.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(ProfileActivity.this, "Failed to remove like: " + throwable.getMessage(), Toast.LENGTH_SHORT).show();
             }
         };
         noteRepository.toggleLike(regionItem, callback);

@@ -34,7 +34,7 @@
             android:layout_height="120dp"
             android:background="@drawable/bg_comment_dialog_input"
             android:gravity="top|start"
-            android:hint="友善评论，理性发言"
+            android:hint="Be kind and stay rational"
             android:padding="12dp"
             android:inputType="textMultiLine"
             android:lines="4"
@@ -62,7 +62,7 @@
                 android:background="@drawable/bg_comment_send_button"
                 android:gravity="center"
                 android:paddingHorizontal="12dp"
-                android:text="发送"
+                android:text="Send"
                 android:textColor="@android:color/white"
                 android:textSize="15sp" />
         </LinearLayout>

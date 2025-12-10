@@ -22,7 +22,7 @@
             android:id="@+id/search_location"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:queryHint="输入地点搜索"
+            android:queryHint="Search for a place"
             android:iconifiedByDefault="false"
             android:layout_margin="12dp"/>
 
@@ -37,14 +37,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="12dp"
-            android:text="请点击地图或搜索选择位置"
+            android:text="Tap the map or search to select a location"
             android:textSize="14sp" />
 
         <Button
             android:id="@+id/btn_confirm_location"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="确认"
+            android:text="Confirm"
             android:layout_margin="12dp"
             android:backgroundTint="@color/purple_500"
             android:textColor="@android:color/white" />

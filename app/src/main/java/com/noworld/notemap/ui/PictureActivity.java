@@ -97,12 +97,12 @@ public class PictureActivity extends AppCompatActivity {
      */
     private void showSaveConfirmDialog() {
         new AlertDialog.Builder(this)
-                .setTitle("保存图片")
-                .setMessage("是否将这张图片保存到相册？")
-                .setPositiveButton("保存", (dialog, which) -> {
+                .setTitle("Save image")
+                .setMessage("Save this image to your gallery?")
+                .setPositiveButton("Save", (dialog, which) -> {
                     requestStoragePermissionAndSaveImage();
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
@@ -129,7 +129,7 @@ public class PictureActivity extends AppCompatActivity {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 downloadImageAndSave();
             } else {
-                Toast.makeText(this, "需要存储权限才能保存图片", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Storage permission is required to save images", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -138,7 +138,7 @@ public class PictureActivity extends AppCompatActivity {
      * 使用 Glide 下载图片并准备添加水印。
      */
     private void downloadImageAndSave() {
-        Toast.makeText(this, "正在保存图片...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Saving image...", Toast.LENGTH_SHORT).show();
         Glide.with(this)
                 .asBitmap()
                 .load(mImageUrl)
@@ -174,9 +174,9 @@ public class PictureActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Boolean success) {
             if (success) {
-                Toast.makeText(context, "图片已保存到相册", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "Image saved to gallery", Toast.LENGTH_LONG).show();
             } else {
-                Toast.makeText(context, "图片保存失败", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "Failed to save image", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -188,7 +188,7 @@ public class PictureActivity extends AppCompatActivity {
         // 创建文件路径
         File storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         if (!storageDir.exists() && !storageDir.mkdirs()) {
-            Log.e("PictureActivity", "无法创建图片目录");
+            Log.e("PictureActivity", "Unable to create image directory");
             return false;
         }
 
@@ -205,7 +205,7 @@ public class PictureActivity extends AppCompatActivity {
             context.sendBroadcast(mediaScanIntent);
             return true;
         } catch (IOException e) {
-            Log.e("PictureActivity", "保存图片失败: " + e.getMessage());
+            Log.e("PictureActivity", "Failed to save image: " + e.getMessage());
             return false;
         }
     }
@@ -221,7 +221,7 @@ public class PictureActivity extends AppCompatActivity {
         canvas.drawBitmap(originalBitmap, 0, 0, null);
 
         // ------------------ 水印配置 ------------------
-        String authorName = (rawAuthorName != null && !rawAuthorName.isEmpty()) ? rawAuthorName : "未知作者";
+        String authorName = (rawAuthorName != null && !rawAuthorName.isEmpty()) ? rawAuthorName : "Unknown author";
         String watermarkText = "NoteApp By " + authorName;
 
         // 尺寸和位置

@@ -62,7 +62,7 @@
         android:id="@+id/btn_unlike"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="取消点赞"
+        android:text="Remove Like"
         android:textSize="12sp"
         android:visibility="gone"
         android:layout_marginTop="6dp"

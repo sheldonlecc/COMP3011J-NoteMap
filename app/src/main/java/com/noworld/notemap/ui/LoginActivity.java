@@ -53,11 +53,11 @@ public class LoginActivity extends AppCompatActivity {
         String password = etPassword.getText() != null ? etPassword.getText().toString().trim() : "";
 
         if (TextUtils.isEmpty(email)) {
-            etEmail.setError("请输入邮箱");
+            etEmail.setError("Please enter email");
             return;
         }
         if (TextUtils.isEmpty(password)) {
-            etPassword.setError("请输入密码");
+            etPassword.setError("Please enter password");
             return;
         }
 
@@ -65,7 +65,7 @@ public class LoginActivity extends AppCompatActivity {
         authRepository.login(email, password, new AuthRepository.LoginCallback() {
             @Override
             public void onSuccess(com.noworld.notemap.data.dto.LoginResponse.UserDto user) {
-                Toast.makeText(LoginActivity.this, "登录成功", Toast.LENGTH_SHORT).show();
+                Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(intent);
@@ -75,7 +75,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onError(@NonNull Throwable throwable) {
                 setLoading(false);
-                Toast.makeText(LoginActivity.this, "登录失败: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(LoginActivity.this, "Login failed: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -83,6 +83,6 @@ public class LoginActivity extends AppCompatActivity {
     private void setLoading(boolean loading) {
         isLoading = loading;
         btnLogin.setEnabled(!loading);
-        btnLogin.setText(loading ? "登录中..." : "登 录");
+        btnLogin.setText(loading ? "Logging in..." : "Log in");
     }
 }

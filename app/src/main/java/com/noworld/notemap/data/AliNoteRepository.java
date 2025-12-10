@@ -124,7 +124,7 @@ public class AliNoteRepository {
             @Override
             public void onResponse(@NonNull Call<List<MapNoteResponse>> call, @NonNull Response<List<MapNoteResponse>> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    callback.onError(new IllegalStateException("拉取笔记失败"));
+                    callback.onError(new IllegalStateException("Failed to fetch notes"));
                     return;
                 }
                 List<RegionItem> items = new ArrayList<>();
@@ -173,7 +173,7 @@ public class AliNoteRepository {
             @Override
             public void onResponse(@NonNull Call<List<MapNoteResponse>> call, @NonNull Response<List<MapNoteResponse>> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    callback.onError(new IllegalStateException("拉取笔记失败"));
+                    callback.onError(new IllegalStateException("Failed to fetch notes"));
                     return;
                 }
                 List<MapNote> list = new ArrayList<>();
@@ -219,7 +219,7 @@ public class AliNoteRepository {
                 if (response.isSuccessful()) {
                     callback.onSuccess();
                 } else {
-                    callback.onError(new IllegalStateException("发布失败"));
+                    callback.onError(new IllegalStateException("Publish failed"));
                 }
             }
 
@@ -247,7 +247,7 @@ public class AliNoteRepository {
                 Log.d(TAG, "Step 2: Presign response received. Success=" + presignResp.isSuccessful());
 
                 if (!presignResp.isSuccessful() || presignResp.body() == null) {
-                    callback.onError(new IllegalStateException("获取上传凭证失败"));
+                    callback.onError(new IllegalStateException("Failed to get upload credentials"));
                     return;
                 }
                 OssPresignResponse presign = presignResp.body();
@@ -257,7 +257,7 @@ public class AliNoteRepository {
 
                 boolean uploadOk = uploadToOss(presign, imageUri);
                 if (!uploadOk) {
-                    callback.onError(new IllegalStateException("上传失败"));
+                    callback.onError(new IllegalStateException("Upload failed"));
                     return;
                 }
                 callback.onSuccess(presign.fileUrl);
@@ -357,7 +357,7 @@ public class AliNoteRepository {
                     }
                     callback.onResult(body.liked, body.likeCount);
                 } else {
-                    callback.onError(new IllegalStateException("点赞失败"));
+                    callback.onError(new IllegalStateException("Like operation failed"));
                 }
             }
 
@@ -388,7 +388,7 @@ public class AliNoteRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onSuccess();
                 } else {
-                    callback.onError(new IllegalStateException("更新失败: " + response.code()));
+                    callback.onError(new IllegalStateException("Update failed: " + response.code()));
                 }
             }
 
@@ -404,7 +404,7 @@ public class AliNoteRepository {
             @Override
             public void onResponse(@NonNull Call<List<CommentResponse>> call, @NonNull Response<List<CommentResponse>> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    callback.onError(new IllegalStateException("获取评论失败"));
+                    callback.onError(new IllegalStateException("Failed to fetch comments"));
                     return;
                 }
                 List<CommentItem> result = new ArrayList<>();
@@ -435,7 +435,7 @@ public class AliNoteRepository {
                 } else if (response.code() == 401) {
                     callback.onRequireLogin();
                 } else {
-                    callback.onError(new IllegalStateException("评论失败"));
+                    callback.onError(new IllegalStateException("Comment failed"));
                 }
             }
 
@@ -462,7 +462,7 @@ public class AliNoteRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onResult(response.body().liked, response.body().likeCount);
                 } else {
-                    callback.onError(new IllegalStateException("操作失败"));
+                    callback.onError(new IllegalStateException("Operation failed"));
                 }
             }
 
@@ -487,7 +487,7 @@ public class AliNoteRepository {
                 } else if (response.code() == 401) {
                     callback.onRequireLogin();
                 } else {
-                    callback.onError(new IllegalStateException("删除失败"));
+                    callback.onError(new IllegalStateException("Delete failed"));
                 }
             }
 
@@ -499,10 +499,10 @@ public class AliNoteRepository {
     }
 
     private CommentItem mapToCommentItem(CommentResponse resp) {
-        if (resp == null) return new CommentItem("", "未知用户", "", "", null, null, null, null, 0, false);
+        if (resp == null) return new CommentItem("", "Unknown user", "", "", null, null, null, null, 0, false);
         return new CommentItem(
                 resp.id != null ? resp.id : "",
-                resp.userName != null ? resp.userName : "地图用户",
+                resp.userName != null ? resp.userName : "Map user",
                 resp.content != null ? resp.content : "",
                 resp.createdAt != null ? resp.createdAt : "",
                 resp.avatarUrl,
@@ -536,7 +536,7 @@ public class AliNoteRepository {
                 if (response.isSuccessful()) {
                     callback.onSuccess();
                 } else {
-                    callback.onError(new Exception("删除失败: " + response.code()));
+                    callback.onError(new Exception("Delete failed: " + response.code()));
                 }
             }
 
@@ -558,7 +558,7 @@ public class AliNoteRepository {
                 if (response.isSuccessful()) {
                     callback.onSuccess();
                 } else {
-                    callback.onError(new Exception("设置失败: " + response.code()));
+                    callback.onError(new Exception("Setting failed: " + response.code()));
                 }
             }
 
@@ -578,7 +578,7 @@ public class AliNoteRepository {
                 if (response.isSuccessful()) {
                     callback.onSuccess();
                 } else {
-                    callback.onError(new Exception("更新失败: " + response.code()));
+                    callback.onError(new Exception("Update failed: " + response.code()));
                 }
             }
 

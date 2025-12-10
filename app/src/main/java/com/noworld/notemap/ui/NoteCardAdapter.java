@@ -156,14 +156,14 @@ public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHo
 
             @Override
             public void onRequireLogin() {
-                Toast.makeText(mContext, "请先登录后再点赞", Toast.LENGTH_SHORT).show();
+                Toast.makeText(mContext, "Please log in before liking", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(mContext, LoginActivity.class);
                 mContext.startActivity(intent);
             }
 
             @Override
             public void onError(@NonNull Throwable e) {
-                Toast.makeText(mContext, "点赞失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(mContext, "Like failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }

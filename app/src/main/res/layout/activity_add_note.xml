@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimary"
-        app:title="笔记"
+        app:title="Note"
         app:titleTextColor="@android:color/white"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -34,7 +34,7 @@
             android:id="@+id/et_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="添加标题"
+            android:hint="Add a title"
             android:inputType="text"
             android:maxLength="50" />
     </com.google.android.material.textfield.TextInputLayout>
@@ -67,7 +67,7 @@
             android:id="@+id/et_story"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:hint="在这里分享你的故事吧！"
+            android:hint="Share your story here!"
             android:gravity="top|start"
             android:inputType="textMultiLine"
             android:maxLength="400" />
@@ -91,7 +91,7 @@
             android:scaleType="centerInside"
             android:src="@android:drawable/ic_input_add"
             android:background="?attr/selectableItemBackground"
-            android:contentDescription="添加图片" />
+            android:contentDescription="Add image" />
     </androidx.cardview.widget.CardView>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -121,7 +121,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="笔记类型"
+            android:text="Note type"
             android:textSize="16sp"
             android:layout_centerVertical="true"
             android:layout_alignParentStart="true" />
@@ -130,7 +130,7 @@
             android:id="@+id/tv_note_type_value"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="请选择"
+            android:text="Please choose"
             android:textSize="16sp"
             android:layout_centerVertical="true"
             android:layout_toStartOf="@id/icon_arrow_type"
@@ -163,7 +163,7 @@
             android:id="@+id/tv_location_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="拍摄地点"
+            android:text="Location"
             android:textSize="16sp"
             android:layout_centerVertical="true"
             android:layout_alignParentStart="true" />
@@ -182,7 +182,7 @@
             android:id="@+id/tv_location_value"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="点击获取当前位置"
+            android:text="Tap to get current location"
             android:textSize="16sp"
             android:layout_centerVertical="true"
             android:layout_toStartOf="@id/icon_arrow_location"
@@ -200,7 +200,7 @@
         android:id="@+id/btn_publish"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="发布笔记"
+        android:text="Publish note"
         android:layout_margin="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"

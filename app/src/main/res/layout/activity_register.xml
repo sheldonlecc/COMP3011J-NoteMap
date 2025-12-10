@@ -10,7 +10,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="创建新账号"
+        android:text="Create Account"
         android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="#333333"
@@ -20,7 +20,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="电子邮箱"
+        android:hint="Email"
         android:layout_marginBottom="16dp">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_reg_email"
@@ -32,7 +32,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="昵称"
+        android:hint="Nickname"
         android:layout_marginBottom="16dp">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_reg_nickname"
@@ -44,7 +44,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="密码"
+        android:hint="Password"
         android:layout_marginBottom="16dp">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_reg_password"
@@ -56,7 +56,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="确认密码"
+        android:hint="Confirm password"
         android:layout_marginBottom="32dp">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_reg_confirm_password"
@@ -69,7 +69,7 @@
         android:id="@+id/btn_register"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:text="立即注册"
+        android:text="Sign up"
         android:textSize="18sp"
         android:backgroundTint="?attr/colorPrimary"/>
 
@@ -78,7 +78,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="已有账号？直接登录"
+        android:text="Already have an account? Log in"
         android:textColor="#666666"
         android:textSize="16sp"/>
 

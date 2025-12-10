@@ -29,7 +29,7 @@
         android:layout_marginEnd="64dp"
         android:background="@drawable/bg_search_bar"
         android:elevation="6dp"
-        android:queryHint="搜索标题/正文/地点"
+        android:queryHint="Search title/content/location"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         app:iconifiedByDefault="false"
@@ -132,7 +132,7 @@
 
         app:backgroundTint="#81D4FA"
         app:tint="@android:color/black"
-        android:contentDescription="类型筛选" />
+        android:contentDescription="Filter by type" />
 
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -146,7 +146,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:contentDescription="添加笔记"
+        android:contentDescription="Add note"
 
         app:backgroundTint="#C21E56"
         app:tint="@android:color/white" />
@@ -161,7 +161,7 @@
         android:src="@drawable/ic_location"
         app:layout_constraintBottom_toBottomOf="@id/fab_add_note"
         app:layout_constraintEnd_toStartOf="@id/fab_add_note"
-        android:contentDescription="我的位置"
+        android:contentDescription="My location"
 
         app:backgroundTint="#C21E56"
         app:tint="@android:color/white" />
@@ -176,7 +176,7 @@
         android:src="@drawable/ic_car"
         app:layout_constraintBottom_toBottomOf="@id/fab_add_note"
         app:layout_constraintStart_toEndOf="@id/fab_add_note"
-        android:contentDescription="用户资料"
+        android:contentDescription="Profile"
 
         app:backgroundTint="#C21E56"
         app:tint="@android:color/white" />
@@ -210,7 +210,7 @@
             android:paddingEnd="16dp"
             android:paddingTop="8dp"
             android:paddingBottom="8dp"
-            android:text="搜索结果"
+            android:text="Search Results"
             android:textSize="16sp"
             android:textStyle="bold" />
 

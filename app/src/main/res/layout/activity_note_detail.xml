@@ -12,7 +12,7 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@android:color/white"
         app:layout_constraintTop_toTopOf="parent"
-        app:title="笔记详情" />
+        app:title="Note Details" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/nested_note_detail"
@@ -48,13 +48,13 @@
 
             <TextView
                 android:id="@+id/tv_detail_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:text="笔记标题"
-                android:textColor="@android:color/black"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Note title"
+            android:textColor="@android:color/black"
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -83,7 +83,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="作者名"
+                    android:text="Author"
                     android:textSize="14sp"/>
             </LinearLayout>
 
@@ -92,7 +92,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="16dp"
-                android:text="这里是笔记的正文内容..."
+                android:text="Note body goes here..."
                 android:textColor="#333333"
                 android:textSize="16sp" />
 
@@ -105,14 +105,14 @@
                     android:id="@+id/tv_detail_type"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="#标签"
+                    android:text="#Tag"
                     android:textColor="@color/colorPrimary"/>
                 <TextView
                     android:id="@+id/tv_detail_location"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
-                    android:text="地点信息"
+                    android:text="Location"
                     android:textColor="#999"/>
             </LinearLayout>
 
@@ -136,7 +136,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="16dp"
-                android:text="共 0 条评论"
+                android:text="0 comments"
                 android:id="@+id/tv_comment_section_title"
                 android:textStyle="bold"
                 android:textSize="14sp"/>
@@ -176,7 +176,7 @@
             android:background="@drawable/bg_search_input"
             android:gravity="center_vertical"
             android:paddingStart="12dp"
-            android:text="说点什么..."
+            android:text="Say something..."
             android:textColor="#999"
             android:textSize="14sp"
             app:layout_constraintBottom_toBottomOf="parent"
