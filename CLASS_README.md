@@ -69,3 +69,11 @@
 - 评论接口：分页获取评论（带作者昵称/头像、作者 ID、点赞状态、父评论信息）；发表评论（支持 parentId，自动带被回复用户昵称，通知笔记作者及被回复者）；评论点赞/取消点赞（更新计数并通知被赞作者）；删除评论（仅作者，连带删除子回复和点赞）。
 - 通知接口：获取未读数、分页拉取通知列表（带触发者昵称/头像）、标记全部已读。通知写入在点赞/评论等动作中调用 `addNotification`。
 - OSS 上传：`/api/oss/presign` 返回 PUT 预签名 URL、文件访问 URL 和需附带的 Content-Type header，客户端直接上传到指定 bucket。
+
+## 功能串联与资源存储速览
+- 功能流转：`MainActivity` 拉取笔记 -> 聚合/Marker 渲染 -> `NoteCardAdapter`/搜索面板/聚合点击进入 `NoteDetailActivity` -> 详情页点赞、评论、图片查看 (`PictureActivity`)；发布/编辑 (`AddNoteActivity`) 通过仓库上传图片后调用后端；个人主页 (`ProfileActivity`) 汇总我发布/我点赞，支持头像/背景更新。
+- 点赞/评论：前端调用 `AliNoteRepository.toggleLike` 和 `toggleCommentLike` 同步本地 `LikedStore`/UI；评论树由 `NoteDetailActivity + CommentAdapter` 管理，回复、删除、点赞全部透传到后端对应接口。
+- 笔记图片/头像存储：
+  - 图片：发布时通过 `/api/oss/presign` 获取 PUT URL，直接上传到阿里云 OSS `notemap-prod-oss`（或配置的 bucket），地址写入 `notes.image_urls` JSON；前端用 Glide 加载这些 URL。
+  - 作者头像：用户更新头像同样走 OSS 上传+`/api/auth/update`，后端存 `users.avatar_url`；笔记查询时 LEFT JOIN 返回 `authorAvatarUrl`，前端 `MapNoteResponse -> MapNote -> RegionItem` 映射后显示。
+  - 本地缓存：`LikedStore` 存点赞状态和计数；`UserStore` 存 token 解析出的 uid/昵称/头像，以及个人主页背景图 URI（仅本地）。
