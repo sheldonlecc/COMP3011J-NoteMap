@@ -12,6 +12,8 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Rect;
 import android.graphics.Path;
+import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -34,6 +36,8 @@ import androidx.appcompat.widget.SearchView;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.cursoradapter.widget.CursorAdapter;
+import androidx.cursoradapter.widget.SimpleCursorAdapter;
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationClient;
@@ -47,7 +51,6 @@ import com.amap.api.maps.UiSettings;
 import com.amap.api.maps.model.BitmapDescriptor;
 import com.amap.api.maps.model.BitmapDescriptorFactory;
 import com.amap.api.maps.model.LatLng;
-import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MyLocationStyle;
 import com.amap.apis.cluster.Cluster;
@@ -63,6 +66,9 @@ import com.amap.api.services.geocoder.GeocodeResult;
 import com.amap.api.services.geocoder.GeocodeSearch;
 import com.amap.api.services.geocoder.RegeocodeResult;
 import com.amap.api.services.geocoder.GeocodeQuery;
+import com.amap.api.services.help.Inputtips;
+import com.amap.api.services.help.InputtipsQuery;
+import com.amap.api.services.help.Tip;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.noworld.notemap.R;
@@ -140,6 +146,12 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private String currentKeyword = "";
     private final Set<String> currentTypeFilters = new HashSet<>();
     private boolean isMapLoaded = false;
+
+    // 高德模糊搜索
+    private static final String[] SEARCH_SUGGEST_COLUMNS = new String[]{"_id", "suggest_text_1", "suggest_text_2"};
+    private SimpleCursorAdapter suggestionAdapter;
+    private final List<Tip> currentTips = new ArrayList<>();
+    private Inputtips inputtips;
 
     // 数据层
     private AliNoteRepository noteRepository;
@@ -469,12 +481,13 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         if (searchView != null) {
             searchView.setIconifiedByDefault(false);
             searchView.setSubmitButtonEnabled(true); // 显示右侧放大镜按钮
-        tweakSearchIconPosition();
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            initFuzzySearch();
+            tweakSearchIconPosition();
+            searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                 @Override
                 public boolean onQueryTextSubmit(String query) {
                     applySearchQuery(query);
-                    searchLocation(query); // 始终触发地点搜索
+                    performFuzzyLocationSearch(query);
                     if (!displayedNotes.isEmpty()) {
                         showSearchSheet();
                     }
@@ -485,6 +498,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
                 @Override
                 public boolean onQueryTextChange(String newText) {
                     applySearchQuery(newText);
+                    requestInputTips(newText);
                     if (TextUtils.isEmpty(newText)) {
                         hideSearchSheet();
                     } else if (!displayedNotes.isEmpty()) {
@@ -658,8 +672,18 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         showSearchSheet();
     }
 
-    private void searchLocation(String keyword) {
-        if (geocodeSearch == null || TextUtils.isEmpty(keyword)) {
+    private void performFuzzyLocationSearch(String keyword) {
+        if (TextUtils.isEmpty(keyword)) {
+            showMsg("No related place/note found");
+            return;
+        }
+        // 优先使用高德原生模糊搜索结果
+        if (!currentTips.isEmpty()) {
+            handleTipSelection(0);
+            return;
+        }
+        // 回落到地理编码
+        if (geocodeSearch == null) {
             showMsg("No related place/note found");
             return;
         }
@@ -747,6 +771,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private void tweakSearchIconPosition() {
         try {
             int magId = resolveSearchViewId("search_mag_icon");
+
+
             int plateId = resolveSearchViewId("search_plate");
             ImageView magIcon = magId != 0 ? searchView.findViewById(magId) : null;
             View searchPlate = plateId != 0 ? searchView.findViewById(plateId) : null;
@@ -779,6 +805,96 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         } catch (Exception e) {
             Log.e(TAG, "Failed to init geocoder", e);
         }
+    }
+
+    private void initFuzzySearch() {
+        suggestionAdapter = new SimpleCursorAdapter(
+                this,
+                android.R.layout.simple_list_item_2,
+                null,
+                new String[]{"suggest_text_1", "suggest_text_2"},
+                new int[]{android.R.id.text1, android.R.id.text2},
+                CursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER
+        );
+        searchView.setSuggestionsAdapter(suggestionAdapter);
+        searchView.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
+            @Override
+            public boolean onSuggestionSelect(int position) {
+                return false;
+            }
+
+            @Override
+            public boolean onSuggestionClick(int position) {
+                handleTipSelection(position);
+                return true;
+            }
+        });
+    }
+
+    private void requestInputTips(String keyword) {
+        if (TextUtils.isEmpty(keyword)) {
+            updateSuggestionCursor(new ArrayList<>());
+            return;
+        }
+        InputtipsQuery query = new InputtipsQuery(keyword, "");
+        query.setCityLimit(false); // 允许跨城市模糊匹配
+        if (inputtips == null) {
+            inputtips = new Inputtips(this, query);
+            inputtips.setInputtipsListener(this::onInputTipsReceived);
+        } else {
+            inputtips.setQuery(query);
+        }
+        inputtips.requestInputtipsAsyn();
+    }
+
+    private void onInputTipsReceived(List<Tip> tips, int rCode) {
+        if (rCode != 1000 || tips == null) {
+            return;
+        }
+        currentTips.clear();
+        for (Tip tip : tips) {
+            // 只保留有坐标的提示，便于直接定位
+            if (tip != null && tip.getPoint() != null) {
+                currentTips.add(tip);
+            }
+        }
+        updateSuggestionCursor(currentTips);
+    }
+
+    private void updateSuggestionCursor(List<Tip> tips) {
+        MatrixCursor cursor = new MatrixCursor(SEARCH_SUGGEST_COLUMNS);
+        int id = 0;
+        for (Tip tip : tips) {
+            cursor.addRow(new Object[]{id++, tip.getName(), tip.getAddress()});
+        }
+        Cursor old = suggestionAdapter.getCursor();
+        suggestionAdapter.changeCursor(cursor);
+        if (old != null) {
+            old.close();
+        }
+    }
+
+    private void handleTipSelection(int position) {
+        if (position < 0 || position >= currentTips.size()) {
+            return;
+        }
+        Tip tip = currentTips.get(position);
+        String name = tip.getName();
+        searchView.setQuery(name, false);
+        applySearchQuery(name);
+        if (tip.getPoint() != null && aMap != null) {
+            LatLng target = new LatLng(tip.getPoint().getLatitude(), tip.getPoint().getLongitude());
+            if (searchMarker != null) {
+                searchMarker.remove();
+            }
+            searchMarker = aMap.addMarker(new com.amap.api.maps.model.MarkerOptions()
+                    .position(target)
+                    .title(name)
+                    .snippet(tip.getAddress()));
+            aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 15));
+            showSearchSheet();
+        }
+        searchView.clearFocus();
     }
 
     private void setupSearchSheet() {
