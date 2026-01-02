@@ -297,6 +297,8 @@ public class NoteDetailActivity extends AppCompatActivity {
 
         ivDetailAvatar = findViewById(R.id.iv_detail_avatar);
         tvDetailAuthor = findViewById(R.id.tv_detail_author);
+        ivDetailAvatar.setOnClickListener(v -> openAuthorProfile());
+        tvDetailAuthor.setOnClickListener(v -> openAuthorProfile());
 
         tvDetailTime = findViewById(R.id.tv_detail_time);
         rvComments = findViewById(R.id.rv_comments);
@@ -365,6 +367,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                     .placeholder(R.drawable.ic_profile)
                     .error(R.drawable.ic_profile)
                     .into(ivDetailAvatar);
+            ivDetailAvatar.setOnClickListener(v -> openAuthorProfile());
         }
 
         if (tvDetailTime != null) {
@@ -387,6 +390,14 @@ public class NoteDetailActivity extends AppCompatActivity {
         setupViewPager();
 
         loadComments();
+    }
+
+    private void openAuthorProfile() {
+        Intent intent = new Intent(this, ProfileActivity.class);
+        intent.putExtra(ProfileActivity.EXTRA_USER_ID, mNote.getAuthorId());
+        intent.putExtra(ProfileActivity.EXTRA_USER_NAME, mNote.getAuthorName());
+        intent.putExtra(ProfileActivity.EXTRA_USER_AVATAR, mNote.getAuthorAvatarUrl());
+        startActivity(intent);
     }
 
     private void refreshLikeState() {

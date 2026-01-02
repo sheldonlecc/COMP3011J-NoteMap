@@ -45,20 +45,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-// 引入高斯模糊库
+// Import blur library
 import jp.wasabeef.glide.transformations.BlurTransformation;
 import com.bumptech.glide.load.MultiTransformation;
 import com.bumptech.glide.load.resource.bitmap.CenterCrop;
 import android.graphics.Bitmap;
 
 /**
- * 个人主页 Activity
+ * Profile screen Activity
  */
 public class ProfileActivity extends AppCompatActivity {
+    public static final String EXTRA_USER_ID = "EXTRA_USER_ID";
+    public static final String EXTRA_USER_NAME = "EXTRA_USER_NAME";
+    public static final String EXTRA_USER_AVATAR = "EXTRA_USER_AVATAR";
 
     private Toolbar toolbar;
 
-    // 【新增】背景图相关控件
+    // Background image views
     private FrameLayout headerContainer;
     private ImageView ivProfileBackground;
 
@@ -79,13 +82,13 @@ public class ProfileActivity extends AppCompatActivity {
     private final List<RegionItem> likedRegionItems = new ArrayList<>();
     private final List<RegionItem> myRegionItems = new ArrayList<>();
 
-    // 【新增】背景图选择器
+    // Background picker
     private ActivityResultLauncher<Intent> backgroundPickerLauncher;
 
     private ActivityResultLauncher<Intent> avatarPickerLauncher;
     private ActivityResultLauncher<String> permissionLauncher;
 
-    // 【新增】标记当前是选头像还是选背景 (true=头像, false=背景)
+    // Flag: picking avatar vs background
     private boolean isPickingAvatar = true;
 
     private boolean isAvatarUploading = false;
@@ -96,6 +99,10 @@ public class ProfileActivity extends AppCompatActivity {
     private UserStore userStore;
     private LikedStore likedStore;
     private AliNoteRepository noteRepository;
+    private String targetUserId;
+    private String targetUserName;
+    private String targetUserAvatar;
+    private boolean isViewingSelf;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,10 +113,15 @@ public class ProfileActivity extends AppCompatActivity {
         userStore = UserStore.getInstance(this);
         likedStore = LikedStore.getInstance(this);
         noteRepository = AliNoteRepository.getInstance(this);
+        targetUserId = getIntent().getStringExtra(EXTRA_USER_ID);
+        targetUserName = getIntent().getStringExtra(EXTRA_USER_NAME);
+        targetUserAvatar = getIntent().getStringExtra(EXTRA_USER_AVATAR);
+        String selfUid = userStore.getUid();
+        isViewingSelf = TextUtils.isEmpty(targetUserId) || (!TextUtils.isEmpty(selfUid) && selfUid.equals(targetUserId));
 
         toolbar = findViewById(R.id.toolbar_profile);
 
-        // 【新增 1】绑定新布局中的控件
+        // Bind views
         headerContainer = findViewById(R.id.header_container);
         ivProfileBackground = findViewById(R.id.iv_profile_background);
 
@@ -134,7 +146,7 @@ public class ProfileActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
-            // 隐藏标题，避免遮挡背景
+            // Hide title to avoid covering background
             getSupportActionBar().setTitle("");
         }
 
@@ -165,25 +177,39 @@ public class ProfileActivity extends AppCompatActivity {
             public void onTabReselected(TabLayout.Tab tab) { }
         });
 
-        // 初始化所有选择器
+        // Initialize pickers
         initPickers();
 
         ivAvatar.setOnClickListener(v -> handleAvatarClick());
         tvUsername.setOnClickListener(v -> handleNicknameClick());
 
-        // 【新增 2】点击头部背景区域触发更换背景
+        // Tap header to change background
         headerContainer.setOnClickListener(v -> handleBackgroundClick());
 
-        // 【新增 3】加载上次保存的背景图
+        // Load previously saved background
         loadProfileBackground();
+        bindUserInfo();
+        setupProfileAction();
+    }
+
+    private void setupProfileAction() {
+        // When viewing others, button starts DM; self uses login/logout logic in updateProfileUI
+        if (!isViewingSelf && !TextUtils.isEmpty(targetUserId)) {
+            btnProfileAction.setText("Direct message");
+            btnProfileAction.setOnClickListener(v -> openChatWith(targetUserId, targetUserName, targetUserAvatar));
+        }
+    }
+
+    private void bindUserInfo() {
+        updateProfileUI();
     }
 
     // ===========================================
-    // 【新增方法区】处理背景图逻辑
+        // Background handling
     // ===========================================
 
     private void initPickers() {
-        // 1. 头像选择回调
+        // 1. Avatar picker
         avatarPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -198,23 +224,23 @@ public class ProfileActivity extends AppCompatActivity {
                     }
                 });
 
-        // 2. 【新增】背景图选择回调
+        // 2. Background picker
         backgroundPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri uri = result.getData().getData();
                         if (uri != null) {
-                            // A. 加载并模糊显示
+                            // A. Load and blur preview
                             loadBlurBackground(uri);
-                            // B. 本地保存
+                            // B. Persist locally
                             userStore.setProfileBg(uri.toString());
                             Toast.makeText(this, "Background updated", Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
 
-        // 3. 权限请求回调
+        // 3. Permission callback
         permissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 granted -> {
@@ -226,23 +252,22 @@ public class ProfileActivity extends AppCompatActivity {
                 });
     }
 
-    // 加载本地存储的背景
+    // Load stored background
     private void loadProfileBackground() {
         String bgUriString = userStore.getProfileBg();
         if (!TextUtils.isEmpty(bgUriString)) {
             loadBlurBackground(Uri.parse(bgUriString));
         } else {
-            // 默认背景色
+            // Default background color
             ivProfileBackground.setImageResource(R.color.colorPrimary);
         }
     }
 
-    // 使用 Glide 加载并应用高斯模糊
+    // Apply blur with Glide
     private void loadBlurBackground(Object model) {
         if (model == null) return;
 
-        // 定义组合变换：先居中裁切(CenterCrop)，再高斯模糊(Blur)
-        // 这样可以保证无论图片多长，都会先自动裁切成合适比例，再进行模糊
+        // Combine center crop + blur so long images are cropped then blurred
         MultiTransformation<Bitmap> multi = new MultiTransformation<>(
                 new CenterCrop(),
                 new jp.wasabeef.glide.transformations.BlurTransformation(25, 3)
@@ -254,13 +279,13 @@ public class ProfileActivity extends AppCompatActivity {
                 .into(ivProfileBackground);
     }
 
-    // 点击背景触发
+    // Click background to change
     private void handleBackgroundClick() {
         new AlertDialog.Builder(this)
                 .setTitle("Change background")
                 .setMessage("Replace the profile background image?")
                 .setPositiveButton("Change", (dialog, which) -> {
-                    isPickingAvatar = false; // 标记：我在选背景
+                    isPickingAvatar = false; // mark picking background
                     ensurePermissionAndPick();
                 })
                 .setNegativeButton("Cancel", null)
@@ -274,7 +299,7 @@ public class ProfileActivity extends AppCompatActivity {
             startLogin();
             return;
         }
-        isPickingAvatar = true; // 标记：我在选头像
+        isPickingAvatar = true; // mark picking avatar
         ensurePermissionAndPick();
     }
 
@@ -315,7 +340,7 @@ public class ProfileActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        // 根据标记判断是启动哪个选择器
+        // Use flag to decide which picker to launch
         if (isPickingAvatar) {
             avatarPickerLauncher.launch(intent);
         } else {
@@ -328,11 +353,11 @@ public class ProfileActivity extends AppCompatActivity {
         isAvatarUploading = true;
         updateLoadingState();
 
-        // 1. 上传 OSS
+        // 1. Upload to OSS
         noteRepository.uploadImage(uri, new AliNoteRepository.UploadCallback() {
             @Override
             public void onSuccess(String fileUrl) {
-                // 2. OSS 成功后，同步给后端数据库
+                // 2. After OSS success, sync to backend
                 noteRepository.updateUserInfo(null, fileUrl, new AliNoteRepository.SimpleCallback() {
                     @Override
                     public void onSuccess() {
@@ -340,7 +365,7 @@ public class ProfileActivity extends AppCompatActivity {
                             isAvatarUploading = false;
                             updateLoadingState();
 
-                            // 3. 后端成功后，更新本地
+                            // 3. When backend succeeds, update local
                             userStore.updateAvatar(fileUrl);
                             tempAvatarUri = null;
                             updateProfileUI();
@@ -388,7 +413,7 @@ public class ProfileActivity extends AppCompatActivity {
                         return;
                     }
 
-                    // 调用后端保存昵称
+                    // Call backend to save nickname
                     noteRepository.updateUserInfo(newName, null, new AliNoteRepository.SimpleCallback() {
                         @Override
                         public void onSuccess() {
@@ -423,7 +448,33 @@ public class ProfileActivity extends AppCompatActivity {
         loadLikedNotes();
     }
 
+    private void openChatWith(String peerId, String peerName, String peerAvatar) {
+        Intent intent = new Intent(this, com.noworld.notemap.ui.chat.ChatActivity.class);
+        intent.putExtra(com.noworld.notemap.ui.chat.ChatActivity.EXTRA_PEER_ID, peerId);
+        intent.putExtra(com.noworld.notemap.ui.chat.ChatActivity.EXTRA_PEER_NAME, peerName);
+        intent.putExtra(com.noworld.notemap.ui.chat.ChatActivity.EXTRA_PEER_AVATAR, peerAvatar);
+        startActivity(intent);
+    }
+
     private void updateProfileUI() {
+        if (!isViewingSelf && !TextUtils.isEmpty(targetUserId)) {
+            tvUsername.setText(!TextUtils.isEmpty(targetUserName) ? targetUserName : "User");
+            tvAccountId.setText("UID: " + targetUserId);
+            tvSignature.setText("No bio yet");
+            tvUsername.setTextColor(ContextCompat.getColor(this, R.color.white));
+            tvAccountId.setTextColor(0xDDFFFFFF);
+            tvSignature.setTextColor(0xDDFFFFFF);
+            btnProfileAction.setText("Direct message");
+            btnProfileAction.setOnClickListener(v -> openChatWith(targetUserId, targetUserName, targetUserAvatar));
+            Glide.with(this)
+                    .load(buildAvatarGlideModel(targetUserAvatar))
+                    .placeholder(R.drawable.ic_profile)
+                    .error(R.drawable.ic_profile)
+                    .circleCrop()
+                    .into(ivAvatar);
+            return;
+        }
+
         String token = tokenStore.getToken();
         if (TextUtils.isEmpty(token)) {
             tvUsername.setText("Guest");
@@ -455,7 +506,7 @@ public class ProfileActivity extends AppCompatActivity {
         tvAccountId.setText("UID: " + (TextUtils.isEmpty(uid) ? "Unknown" : uid));
         tvSignature.setText("Welcome back");
 
-        // 【视觉优化】确保文字在背景图上可见
+        // Visual tweak: make text visible over background
         tvUsername.setTextColor(ContextCompat.getColor(this, R.color.white));
         tvAccountId.setTextColor(0xDDFFFFFF);
         tvSignature.setTextColor(0xDDFFFFFF);

@@ -123,6 +123,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
     private FloatingActionButton fab_my_location;
     private FloatingActionButton fab_add_note;
     private FloatingActionButton fab_user_profile;
+    private FloatingActionButton fab_chat;
     private SearchView searchView;
     private View bottomSheetSearch;
     private RecyclerView rvSearchResult;
@@ -435,6 +436,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         fab_zoom_large = findViewById(R.id.fab_zoom_large);
         fab_zoom_small = findViewById(R.id.fab_zoom_small);
         fab_location = findViewById(R.id.fab_location);
+        fab_chat = findViewById(R.id.fab_chat);
 
         // [新增] 绑定 Toolbar
         toolbar_main = findViewById(R.id.toolbar_main);
@@ -443,6 +445,7 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
         fab_zoom_large.setOnClickListener(this);
         fab_zoom_small.setOnClickListener(this);
         fab_location.setOnClickListener(this);
+        if (fab_chat != null) fab_chat.setOnClickListener(this);
 
         // [修改] 绑定新的底部导航栏 FAB 按钮 (ID 已修正)
         fab_my_location = findViewById(R.id.fab_my_location);
@@ -1297,6 +1300,8 @@ public class MainActivity extends AppCompatActivity implements AMapLocationListe
             // “用户资料”按钮
             Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
             startActivity(intent);
+        } else if (view.getId() == R.id.fab_chat) {
+            startActivity(new Intent(this, com.noworld.notemap.ui.chat.ChatListActivity.class));
         }
     }
 

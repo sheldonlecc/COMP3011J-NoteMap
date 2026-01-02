@@ -101,6 +101,9 @@ public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHo
             // Toast.makeText(mContext, "点击了笔记: " + note.getTitle(), Toast.LENGTH_SHORT).show();
         });
 
+        holder.ivAuthorAvatar.setOnClickListener(v -> openProfile(note));
+        holder.tvAuthorName.setOnClickListener(v -> openProfile(note));
+
         holder.ivLikeIcon.setOnClickListener(v -> handleLikeClicked(holder, note));
     }
 
@@ -199,7 +202,15 @@ public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHo
             note.setLikeCount(stored);
             return stored;
         }
-        return note.getLikeCount();
+        return Math.max(note.getLikeCount(), 0);
+    }
+
+    private void openProfile(RegionItem note) {
+        Intent intent = new Intent(mContext, ProfileActivity.class);
+        intent.putExtra(ProfileActivity.EXTRA_USER_ID, note.getAuthorId());
+        intent.putExtra(ProfileActivity.EXTRA_USER_NAME, note.getAuthorName());
+        intent.putExtra(ProfileActivity.EXTRA_USER_AVATAR, note.getAuthorAvatarUrl());
+        mContext.startActivity(intent);
     }
 
     private String getCurrentUid() {

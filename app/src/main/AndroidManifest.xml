@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
@@ -107,6 +108,15 @@
             android:label="@string/notification_title"
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
+
+        <activity
+            android:name=".ui.chat.ChatListActivity"
+            android:exported="false"
+            android:label="私聊" />
+        <activity
+            android:name=".ui.chat.ChatActivity"
+            android:exported="false"
+            android:label="聊天" />
 
         <service android:name="com.amap.api.location.APSService" />
 

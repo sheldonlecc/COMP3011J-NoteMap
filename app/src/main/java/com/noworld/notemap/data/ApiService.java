@@ -13,6 +13,9 @@ import com.noworld.notemap.data.dto.UpdateProfileResponse;
 import com.noworld.notemap.data.dto.AddCommentRequest;
 import com.noworld.notemap.data.dto.CommentResponse;
 import com.noworld.notemap.data.dto.NotificationResponse;
+import com.noworld.notemap.data.dto.ChatMessageResponse;
+import com.noworld.notemap.data.dto.ConversationResponse;
+import com.noworld.notemap.data.dto.SendMessageRequest;
 
 import java.util.List;
 
@@ -86,4 +89,16 @@ public interface  ApiService {
 
     @POST("/api/notifications/read_all")
     Call<Void> readAllNotifications();
+
+    // 私聊
+    @GET("/api/chats")
+    Call<List<ConversationResponse>> getConversations();
+
+    @GET("/api/chats/{peerId}/messages")
+    Call<List<ChatMessageResponse>> getMessages(@Path("peerId") String peerId,
+                                                @Query("sinceId") String sinceId);
+
+    @POST("/api/chats/{peerId}/messages")
+    Call<ChatMessageResponse> sendMessage(@Path("peerId") String peerId,
+                                          @Body SendMessageRequest request);
 }
