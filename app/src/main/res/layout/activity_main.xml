@@ -198,7 +198,7 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- 搜索结果 BottomSheet -->
+    <!-- Search results BottomSheet -->
     <LinearLayout
         android:id="@+id/bottom_sheet_search"
         android:layout_width="match_parent"

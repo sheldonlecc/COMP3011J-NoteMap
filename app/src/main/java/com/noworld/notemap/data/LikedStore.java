@@ -8,13 +8,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * 持久化当前用户点赞过的笔记 ID，解决重新进入后点赞状态丢失问题。
+ * Persist liked note IDs for the current user to keep like state across sessions.
  */
 public class LikedStore {
 
     private static final String PREF_NAME = "aliyun_like_pref";
-    private static final String KEY_LIKED_PREFIX = "liked_"; // 后缀为 uid
-    private static final String KEY_COUNT = "like_counts"; // 全局存储 id:count
+    private static final String KEY_LIKED_PREFIX = "liked_"; // suffix is uid
+    private static final String KEY_COUNT = "like_counts"; // stores id:count globally
 
     private static LikedStore instance;
     private final SharedPreferences prefs;

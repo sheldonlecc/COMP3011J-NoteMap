@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.noworld.notemap' // [修改] 从 com.noworld.findmycar 改成 com.noworld.notemap
+    namespace 'com.noworld.notemap' // changed from com.noworld.findmycar
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.noworld.notemap" // [修改] 从 com.noworld.findmycar 改成 com.noworld.notemap
+        applicationId "com.noworld.notemap" // changed from com.noworld.findmycar
         minSdk 24
         targetSdk 34
         versionCode 2
@@ -17,7 +17,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            //设置支持的SO库架构（开发者可以根据需要，选择一个或多个平台的so）
+            // Supported ABI filters
             abiFilters "armeabi", "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
         }
     }
@@ -63,15 +63,15 @@ android {
 
 dependencies {
 
-    // 3D地图
+    // 3D map
     // implementation 'com.amap.api:3dmap:latest.integration'
-    // 2D地图
+    // 2D map
     // implementation 'com.amap.api:map2d:latest.integration'
-    // 定位
+    // Location
     // implementation 'com.amap.api:location:latest.integration'
-    // 搜索
+    // Search
     // implementation 'com.amap.api:search:latest.integration'
-    // 导航
+    // Navigation
     // implementation 'com.amap.api:navi:latest.integration'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 

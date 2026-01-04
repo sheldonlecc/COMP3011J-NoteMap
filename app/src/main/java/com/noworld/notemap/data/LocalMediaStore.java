@@ -11,7 +11,7 @@ import java.io.InputStream;
 import java.util.Locale;
 
 /**
- * 将用户选择的图片/视频复制到应用内部目录，返回本地文件绝对路径。
+ * Copy a picked image/video into the app's internal dir and return the absolute path.
  */
 class LocalMediaStore {
     private final Context context;

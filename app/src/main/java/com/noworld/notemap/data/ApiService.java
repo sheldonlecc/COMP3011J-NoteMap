@@ -54,33 +54,33 @@ public interface  ApiService {
     @POST("/api/auth/update")
     Call<UpdateProfileResponse> updateProfile(@Body UpdateProfileRequest request);
 
-    // ... 原有的代码 ...
+    // Existing endpoints
 
-    // 【评论】获取笔记评论列表
+    // Comments: list for a note
     @GET("/api/notes/{id}/comments")
     Call<List<CommentResponse>> getComments(@Path("id") String noteId);
 
-    // 【评论】发表评论
+    // Comments: add
     @POST("/api/notes/{id}/comments")
     Call<CommentResponse> addComment(@Path("id") String noteId, @Body AddCommentRequest request);
 
-    // 【评论】点赞/取消点赞
+    // Comments: like/unlike
     @POST("/api/comments/{id}/like")
     Call<LikeResponse> toggleCommentLike(@Path("id") String commentId);
 
-    // 【评论】删除
+    // Comments: delete
     @DELETE("/api/comments/{id}")
     Call<Void> deleteComment(@Path("id") String commentId);
 
-    // 【新增】修改笔记 (内容 或 可见性)
+    // Notes: update content or visibility
     @PUT("/api/notes/{id}")
     Call<Void> updateNote(@Path("id") String id, @Body com.noworld.notemap.data.dto.UpdateNoteRequest request);
 
-    // 【新增】删除笔记
+    // Notes: delete
     @DELETE("/api/notes/{id}")
     Call<Void> deleteNote(@Path("id") String id);
 
-    // 通知
+    // Notifications
     @GET("/api/notifications")
     Call<List<NotificationResponse>> getNotifications(@Query("page") Integer page, @Query("size") Integer size);
 
@@ -90,7 +90,7 @@ public interface  ApiService {
     @POST("/api/notifications/read_all")
     Call<Void> readAllNotifications();
 
-    // 私聊
+    // Direct chat
     @GET("/api/chats")
     Call<List<ConversationResponse>> getConversations();
 

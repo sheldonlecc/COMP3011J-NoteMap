@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 import android.text.TextUtils;
 
 /**
- * 简单的 token 持久化。
+ * Simple token persistence helper.
  */
 public class TokenStore {
     private static final String PREF_NAME = "aliyun_auth_pref";

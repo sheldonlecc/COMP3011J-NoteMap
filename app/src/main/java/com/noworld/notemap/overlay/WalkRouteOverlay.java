@@ -14,7 +14,7 @@ import com.amap.api.services.route.WalkStep;
 import java.util.List;
 
 /**
- * 步行路线图层类。在高德地图API里，如果要显示步行路线规划，可以用此类来创建步行路线图层。如不满足需求，也可以自己创建自定义的步行路线图层。
+ * Walking route overlay for AMap; use it to render walking navigation lines or extend as needed.
  *
  * @since V2.1.0
  */
@@ -27,13 +27,13 @@ public class WalkRouteOverlay extends RouteOverlay {
     private WalkPath walkPath;
 
     /**
-     * 通过此构造函数创建步行路线图层。
+     * Create a walking route overlay.
      *
-     * @param context 当前activity。
-     * @param amap    地图对象。
-     * @param path    步行路线规划的一个方案。详见搜索服务模块的路径查询包（com.amap.api.services.route）中的类 <strong><a href="../../../../../../Search/com/amap/api/services/route/WalkStep.html" title="com.amap.api.services.route中的类">WalkStep</a></strong>。
-     * @param start   起点。详见搜索服务模块的核心基础包（com.amap.api.services.core）中的类<strong><a href="../../../../../../Search/com/amap/api/services/core/LatLonPoint.html" title="com.amap.api.services.core中的类">LatLonPoint</a></strong>。
-     * @param end     终点。详见搜索服务模块的核心基础包（com.amap.api.services.core）中的类<strong><a href="../../../../../../Search/com/amap/api/services/core/LatLonPoint.html" title="com.amap.api.services.core中的类">LatLonPoint</a></strong>。
+     * @param context current activity
+     * @param amap    map instance
+     * @param path    walking path result (see WalkStep)
+     * @param start   start point (LatLonPoint)
+     * @param end     end point (LatLonPoint)
      * @since V2.1.0
      */
     public WalkRouteOverlay(Context context, AMap amap, WalkPath path,
@@ -46,7 +46,7 @@ public class WalkRouteOverlay extends RouteOverlay {
     }
 
     /**
-     * 添加步行路线到地图中。
+     * Add walking route to the map.
      *
      * @since V2.1.0
      */
@@ -73,7 +73,7 @@ public class WalkRouteOverlay extends RouteOverlay {
     }
 
     /**
-     * 检查这一步的最后一点和下一步的起始点之间是否存在空隙
+     * Check gap between end of this step and start of next.
      */
     private void checkDistanceToNextStep(WalkStep walkStep,
                                          WalkStep walkStep1) {
@@ -123,14 +123,14 @@ public class WalkRouteOverlay extends RouteOverlay {
     private void addWalkStationMarkers(WalkStep walkStep, LatLng position) {
         addStationMarker(new MarkerOptions()
                 .position(position)
-                .title("\u65B9\u5411:" + walkStep.getAction()
-                        + "\n\u9053\u8DEF:" + walkStep.getRoad())
+                .title("Direction:" + walkStep.getAction()
+                        + "\nRoad:" + walkStep.getRoad())
                 .snippet(walkStep.getInstruction()).visible(nodeIconVisible)
                 .anchor(0.5f, 0.5f).icon(walkStationDescriptor));
     }
 
     /**
-     * 初始化线段属性
+     * Initialize polyline options
      */
     private void initPolylineOptions() {
 
@@ -149,4 +149,3 @@ public class WalkRouteOverlay extends RouteOverlay {
         addPolyLine(mPolylineOptions);
     }
 }
-

@@ -5,14 +5,14 @@ import com.amap.api.maps.model.BitmapDescriptor;
 /**
  * Created by yiyi.qi on 16/10/10.
  *
- * <p>自定义聚合渲染接口，返回每个聚合点对应的 {@link BitmapDescriptor}。</p>
+ * <p>Render interface for clusters, returning a {@link BitmapDescriptor} for each cluster.</p>
  */
 public interface ClusterRender {
     /**
-     * 根据聚合点内容返回渲染所需的 {@link BitmapDescriptor}。
+     * Return the {@link BitmapDescriptor} for a given cluster.
      *
-     * @param cluster 聚合数据
-     * @return 渲染用的位图描述对象；返回 {@code null} 时将使用默认样式。
+     * @param cluster cluster data
+     * @return descriptor for rendering; {@code null} uses default styling.
      */
     BitmapDescriptor getBitmapDescriptor(Cluster cluster);
 }

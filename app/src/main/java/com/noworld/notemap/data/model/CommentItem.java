@@ -1,7 +1,7 @@
 package com.noworld.notemap.data.model;
 
 /**
- * UI 层使用的评论数据模型。
+ * Comment model used by the UI layer.
  */
 public class CommentItem {
     private final String id;

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 本地存储私聊数据（离线）：文件保存在内部存储，不走服务端。
+ * Offline storage for direct messages: kept in internal storage, not sent to server.
  */
 class LocalChatStore {
     private final File storeFile;
@@ -123,8 +123,8 @@ class LocalChatStore {
     }
 
     private String buildPreview(ChatMessageResponse m) {
-        if ("image".equals(m.mediaType)) return "[图片]";
-        if ("video".equals(m.mediaType)) return "[视频]";
+        if ("image".equals(m.mediaType)) return "[Image]";
+        if ("video".equals(m.mediaType)) return "[Video]";
         return !TextUtils.isEmpty(m.content) ? m.content : "";
     }
 

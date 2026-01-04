@@ -213,6 +213,10 @@ public class ProfileActivity extends AppCompatActivity {
         avatarPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
+                    if (!isViewingSelf) {
+                        Toast.makeText(this, "You can only change your own avatar", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri uri = result.getData().getData();
                         if (uri != null) {
@@ -228,6 +232,10 @@ public class ProfileActivity extends AppCompatActivity {
         backgroundPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
+                    if (!isViewingSelf) {
+                        Toast.makeText(this, "You can only change your own background", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri uri = result.getData().getData();
                         if (uri != null) {
@@ -254,6 +262,10 @@ public class ProfileActivity extends AppCompatActivity {
 
     // Load stored background
     private void loadProfileBackground() {
+        if (!isViewingSelf) {
+            ivProfileBackground.setImageResource(R.color.colorPrimary);
+            return;
+        }
         String bgUriString = userStore.getProfileBg();
         if (!TextUtils.isEmpty(bgUriString)) {
             loadBlurBackground(Uri.parse(bgUriString));
@@ -281,6 +293,10 @@ public class ProfileActivity extends AppCompatActivity {
 
     // Click background to change
     private void handleBackgroundClick() {
+        if (!isViewingSelf) {
+            Toast.makeText(this, "You can only change your own background", Toast.LENGTH_SHORT).show();
+            return;
+        }
         new AlertDialog.Builder(this)
                 .setTitle("Change background")
                 .setMessage("Replace the profile background image?")
@@ -295,6 +311,10 @@ public class ProfileActivity extends AppCompatActivity {
     // ===========================================
 
     private void handleAvatarClick() {
+        if (!isViewingSelf) {
+            Toast.makeText(this, "You can only change your own avatar", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (TextUtils.isEmpty(tokenStore.getToken())) {
             startLogin();
             return;
@@ -304,6 +324,10 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void handleNicknameClick() {
+        if (!isViewingSelf) {
+            Toast.makeText(this, "You can only edit your own nickname", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (TextUtils.isEmpty(tokenStore.getToken())) {
             startLogin();
             return;
@@ -349,6 +373,10 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void uploadAvatar(Uri uri) {
+        if (!isViewingSelf) {
+            Toast.makeText(this, "You can only change your own avatar", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (uri == null || isAvatarUploading) return;
         isAvatarUploading = true;
         updateLoadingState();

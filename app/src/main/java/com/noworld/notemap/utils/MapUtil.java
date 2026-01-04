@@ -6,21 +6,21 @@ import com.amap.api.services.core.LatLonPoint;
 import java.text.DecimalFormat;
 
 /**
- * 地图帮助类
+ * Map helper utilities.
  *
  * @author llw
  */
 public class MapUtil {
 
     /**
-     * 把LatLng对象转化为LatLonPoint对象
+     * Convert LatLng to LatLonPoint.
      */
     public static LatLonPoint convertToLatLonPoint(LatLng latLng) {
         return new LatLonPoint(latLng.latitude, latLng.longitude);
     }
 
     /**
-     * 把LatLonPoint对象转化为LatLon对象
+     * Convert LatLonPoint to LatLng.
      */
     public static LatLng convertToLatLng(LatLonPoint latLonPoint) {
         return new LatLng(latLonPoint.getLatitude(), latLonPoint.getLongitude());

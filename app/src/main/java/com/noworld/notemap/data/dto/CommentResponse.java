@@ -3,7 +3,7 @@ package com.noworld.notemap.data.dto;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * 后端返回的评论结构。
+ * Comment structure returned by the backend.
  */
 public class CommentResponse {
     public String id;

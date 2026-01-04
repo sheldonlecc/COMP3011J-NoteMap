@@ -3,11 +3,11 @@ package com.noworld.notemap.ui;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView; // 1. 导入 ImageView
+import android.widget.ImageView; // ImageView import
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.bumptech.glide.Glide; // 2. 导入 Glide
+import com.bumptech.glide.Glide; // Glide import
 import com.noworld.notemap.R;
 import com.noworld.notemap.data.model.CommentItem;
 import java.util.ArrayList;
@@ -138,7 +138,7 @@ public class CommentAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             if (listener != null) listener.onLike(item);
         });
         h.ivLike.setImageResource(item.isLiked() ? R.drawable.ic_like_filled : R.drawable.ic_like);
-        int color = item.isLiked() ? 0xFFFF6E79 : 0xFF999999; // 红/灰
+        int color = item.isLiked() ? 0xFFFF6E79 : 0xFF999999; // red/gray
         h.ivLike.setColorFilter(color);
         h.tvLikeCount.setText(String.valueOf(item.getLikeCount()));
     }
@@ -153,7 +153,7 @@ public class CommentAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     static class VH extends RecyclerView.ViewHolder {
         TextView tvUser, tvContent, tvTime, tvLikeCount;
-        ImageView ivAvatar, ivLike; // 4. 声明 ImageView
+        ImageView ivAvatar, ivLike; // ImageView references
         View layoutLike;
 
         VH(View v) {

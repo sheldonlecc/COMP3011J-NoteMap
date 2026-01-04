@@ -34,7 +34,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * 面向阿里云接口的数据仓库。
+ * Data repository for Aliyun-backed APIs.
  */
 public class AliNoteRepository {
 
@@ -131,18 +131,12 @@ public class AliNoteRepository {
                 String uid = getCurrentUid();
                 Set<String> likedIds = likedStore.getLikedIds(uid);
 
-                // 【已修改】确保 RegionItem 获得作者ID和私密状态
+                // Ensure RegionItem carries author id and privacy state
                 for (MapNoteResponse r : response.body()) {
                     MapNote note = MapNote.fromResponse(r);
                     RegionItem regionItem = note.toRegionItem();
 
-                    // 确保 RegionItem 得到作者ID和私密状态
-                    // 假设 MapNoteResponse 包含 authorId 和 isPrivate 字段
-                    // 并且 MapNote.fromResponse 已经将它们赋给了 note
-                    // 这里只需要确保 RegionItem 接收到它们
-
-                    // *如果 RegionItem 的 setAuthorId 和 setPrivate 缺失*
-                    // *这将在 MapNote.toRegionItem() 中解决，但为确保兼容性，先依赖 MapNote*
+                    // MapNote.fromResponse maps authorId/isPrivate; RegionItem receives them here.
 
                     if (likedIds.contains(regionItem.getNoteId())) {
                         regionItem.setLikedByCurrentUser(true);
@@ -166,8 +160,8 @@ public class AliNoteRepository {
     }
 
     /**
-        * 拉取所有笔记并返回 MapNote 列表，方便在“我的”页过滤。
-        */
+     * Fetch all notes and return MapNote list (used for filtering in "Mine").
+     */
     public void fetchAllNotes(MapNotesCallback callback) {
         api.getNotes(null, null, null, null).enqueue(new Callback<List<MapNoteResponse>>() {
             @Override
@@ -180,13 +174,12 @@ public class AliNoteRepository {
                 String uid = getCurrentUid();
                 Set<String> likedIds = likedStore.getLikedIds(uid);
 
-                // 【已修改】直接使用后端返回的数据
+                // Use backend data directly
                 for (MapNoteResponse r : response.body()) {
                     MapNote note = MapNote.fromResponse(r);
                     RegionItem regionItem = note.toRegionItem();
 
-                    // 确保 RegionItem 获得作者ID和私密状态
-                    // 与 fetchNotes 类似，确保 MapNote.fromResponse(r) 成功映射了 r.authorId
+                    // Keep authorId/privacy info aligned with MapNote.fromResponse
 
                     if (likedIds.contains(regionItem.getNoteId())) {
                         regionItem.setLikedByCurrentUser(true);
@@ -238,12 +231,12 @@ public class AliNoteRepository {
                 String mime = appContext.getContentResolver().getType(imageUri);
                 OssPresignRequest request = new OssPresignRequest(fileName, size, mime != null ? mime : "image/jpeg");
 
-                // <<< 在这里添加调试日志 1 >>>
+                // Debug log 1: request presigned URL
                 Log.d(TAG, "Step 1: Requesting presigned URL for " + fileName);
 
                 Response<OssPresignResponse> presignResp = api.getOssPresign(request).execute();
 
-                // <<< 在这里添加调试日志 2 >>>
+                // Debug log 2: presign response
                 Log.d(TAG, "Step 2: Presign response received. Success=" + presignResp.isSuccessful());
 
                 if (!presignResp.isSuccessful() || presignResp.body() == null) {
@@ -252,7 +245,7 @@ public class AliNoteRepository {
                 }
                 OssPresignResponse presign = presignResp.body();
 
-                // <<< 在这里添加调试日志 3 >>>
+                // Debug log 3: starting upload
                 Log.d(TAG, "Step 3: Starting actual upload to URL: " + presign.uploadUrl);
 
                 boolean uploadOk = uploadToOss(presign, imageUri);
@@ -291,7 +284,7 @@ public class AliNoteRepository {
                     return true;
                 }
             } catch (UnknownServiceException e) {
-                // Cleartext 被拒绝时尝试换用 https
+                // If cleartext is rejected, retry with https
                 if (!triedHttps && uploadUrl.startsWith("http://")) {
                     uploadUrl = uploadUrl.replaceFirst("^http://", "https://");
                     triedHttps = true;
@@ -368,19 +361,19 @@ public class AliNoteRepository {
         });
     }
 
-    // === 新增：定义一个简单的回调接口 ===
+    // Simple generic callback
     public interface SimpleCallback {
         void onSuccess();
         void onError(Throwable t);
     }
 
-    // === 新增：调用后端更新用户信息的接口 ===
+    // Update user info through backend
     public void updateUserInfo(String nickname, String avatarUrl, SimpleCallback callback) {
-        // 构建请求体 (DTO)
+        // Build request body (DTO)
         com.noworld.notemap.data.dto.UpdateProfileRequest request =
                 new com.noworld.notemap.data.dto.UpdateProfileRequest(nickname, avatarUrl);
 
-        // 发起请求
+        // Make request
         api.updateProfile(request).enqueue(new retrofit2.Callback<com.noworld.notemap.data.dto.UpdateProfileResponse>() {
             @Override
             public void onResponse(@NonNull Call<com.noworld.notemap.data.dto.UpdateProfileResponse> call,
@@ -528,7 +521,7 @@ public class AliNoteRepository {
         return "guest";
     }
 
-    // === 新增：删除笔记 ===
+    // Delete a note
     public void deleteNote(String noteId, SimpleCallback callback) {
         api.deleteNote(noteId).enqueue(new retrofit2.Callback<Void>() {
             @Override
@@ -547,7 +540,7 @@ public class AliNoteRepository {
         });
     }
 
-    // === 新增：修改笔记可见性 (公开/私密) ===
+    // Update note visibility (public/private)
     public void setNotePrivacy(String noteId, boolean isPrivate, SimpleCallback callback) {
         com.noworld.notemap.data.dto.UpdateNoteRequest request =
                 new com.noworld.notemap.data.dto.UpdateNoteRequest(isPrivate);
@@ -569,9 +562,9 @@ public class AliNoteRepository {
         });
     }
 
-    // === 新增：修改笔记内容 (标题和描述) ===
+    // Update note content (title/description)
     public void updateNote(String noteId, com.noworld.notemap.data.dto.UpdateNoteRequest request, SimpleCallback callback) {
-        // 注意：这里我们重用了 updateNote 接口，后端应能识别请求体内容并只更新相应字段
+        // Reuse updateNote endpoint; backend should patch only provided fields
         api.updateNote(noteId, request).enqueue(new retrofit2.Callback<Void>() {
             @Override
             public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {

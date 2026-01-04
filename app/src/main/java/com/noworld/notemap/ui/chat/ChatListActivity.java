@@ -36,7 +36,7 @@ public class ChatListActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("私聊");
+            getSupportActionBar().setTitle("Direct Messages");
         }
         toolbar.setNavigationOnClickListener(v -> finish());
 

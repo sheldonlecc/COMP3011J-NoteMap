@@ -1,7 +1,7 @@
 package com.noworld.notemap.data.dto;
 
 /**
- * 请求体：发表新评论。
+ * Request body for posting a new comment.
  */
 public class AddCommentRequest {
     public String content;

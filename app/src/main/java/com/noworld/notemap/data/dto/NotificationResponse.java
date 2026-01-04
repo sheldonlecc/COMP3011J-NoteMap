@@ -5,7 +5,7 @@ public class NotificationResponse {
     public String type;
     public String targetType;
     public String targetId;
-    // 当 targetType=comment 时，后端可返回对应的笔记 ID，便于跳转
+    // When targetType=comment, backend may return the note ID for navigation
     public String noteId;
     public String message;
     public String time;

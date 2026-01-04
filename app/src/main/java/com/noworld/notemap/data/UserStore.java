@@ -13,7 +13,7 @@ import org.json.JSONObject;
 import java.util.UUID;
 
 /**
- * 本地存储登录用户信息（id、昵称、头像）。
+ * Stores logged-in user info locally (id, nickname, avatar).
  */
 public class UserStore {
     private static final String PREF_NAME = "aliyun_user_pref";
@@ -25,7 +25,7 @@ public class UserStore {
     private static UserStore instance;
     private final SharedPreferences prefs;
 
-    // 1. 定义一个 Key 用来存背景图路径
+    // Key for storing profile background URI
     private static final String KEY_PROFILE_BG = "profile_bg_uri";
 
     private UserStore(Context context) {
@@ -40,7 +40,7 @@ public class UserStore {
     }
 
     /**
-     * 保存用户信息并自动为缺失字段填充默认值/唯一 ID。
+     * Save user info and fill defaults/unique ID when missing.
      */
     public LoginResponse.UserDto saveUser(@Nullable LoginResponse.UserDto user) {
         LoginResponse.UserDto existing = getUser();
@@ -149,11 +149,11 @@ public class UserStore {
                 .remove(KEY_UID)
                 .remove(KEY_USERNAME)
                 .remove(KEY_AVATAR)
-                .apply(); // 保留按 uid 存储的头像，用于重新登录后回显
+                .apply(); // Keep per-uid avatar for later re-login display
     }
 
     /**
-     * 从 JWT token 的 payload 中提取 uid 字段，用于与后端保持一致。
+     * Extract uid from JWT payload to stay aligned with backend.
      */
     public String extractUidFromToken(@Nullable String token) {
         if (TextUtils.isEmpty(token) || !token.contains(".")) return null;
@@ -168,20 +168,20 @@ public class UserStore {
                 return String.valueOf(uidVal);
             }
         } catch (Exception e) {
-            // ignore, fallback to server提供的 uid
+            // ignore, fall back to server-provided uid
         }
         return null;
     }
 
     /**
-     * 保存背景图的 URI 字符串
+     * Save profile background URI.
      */
     public void setProfileBg(String uriString) {
         prefs.edit().putString(KEY_PROFILE_BG, uriString).apply();
     }
 
     /**
-     * 获取背景图的 URI 字符串
+     * Get profile background URI.
      */
     public String getProfileBg() {
         return prefs.getString(KEY_PROFILE_BG, null);

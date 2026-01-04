@@ -8,7 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.RecyclerView;
 
-// [新增] 导入瀑布流布局
+// Import staggered grid layout
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import com.noworld.notemap.R;
@@ -21,7 +21,7 @@ public class ClusterDetailActivity extends AppCompatActivity {
     public static final String EXTRA_CLUSTER_NOTES = "CLUSTER_NOTES_LIST";
     private List<RegionItem> notesList;
     private RecyclerView rvClusterNotes;
-    private NoteCardAdapter adapter; // [新增] 使用新的 Adapter
+    private NoteCardAdapter adapter; // Use NoteCardAdapter
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,12 +55,12 @@ public class ClusterDetailActivity extends AppCompatActivity {
     }
 
     private void initRecyclerView() {
-        // [修改] 1. 使用瀑布流布局，设置为 2 列
+        // Use a 2-column staggered grid
         StaggeredGridLayoutManager layoutManager =
                 new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL);
         rvClusterNotes.setLayoutManager(layoutManager);
 
-        // [修改] 2. 使用新的 NoteCardAdapter
+        // Attach adapter
         adapter = new NoteCardAdapter(this, notesList);
         rvClusterNotes.setAdapter(adapter);
     }

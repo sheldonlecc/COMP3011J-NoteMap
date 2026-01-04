@@ -1,7 +1,7 @@
 package com.noworld.notemap.overlay;
 
 /**
- * 地图服务工具类
+ * Map service utilities.
  */
 
 import android.graphics.Bitmap;
@@ -60,4 +60,3 @@ class AMapServicesUtil {
     }
 
 }
-

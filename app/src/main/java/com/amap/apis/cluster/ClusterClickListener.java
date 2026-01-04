@@ -10,12 +10,12 @@ import java.util.List;
 
 public interface ClusterClickListener{
         /**
-         * 点击聚合点的回调处理函数
+         * Callback when a cluster marker is clicked.
          *
          * @param marker
-         *            点击的聚合点
+         *            the clicked cluster marker
          * @param clusterItems
-         *            聚合点所包含的元素
+         *            items contained in the cluster
          */
         public void onClick(Marker marker, List<ClusterItem> clusterItems);
 }

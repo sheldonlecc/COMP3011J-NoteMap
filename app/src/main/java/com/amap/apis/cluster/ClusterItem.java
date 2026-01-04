@@ -8,7 +8,7 @@ import com.amap.api.maps.model.LatLng;
 
 public interface ClusterItem {
     /**
-     * 返回聚合元素的地理位置
+     * Return the position of the clustered element.
      *
      * @return
      */

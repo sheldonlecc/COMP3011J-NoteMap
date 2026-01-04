@@ -42,8 +42,8 @@
         android:theme="@style/Theme.FindMyCar"
         tools:targetApi="31">
 
-        <!-- 【修改 1】SplashActivity 设为启动页 (带 intent-filter) -->
-        <!-- theme 设置为 NoActionBar 可以让启动画面更干净 -->
+        <!-- Set SplashActivity as launcher with intent-filter -->
+        <!-- NoActionBar theme keeps splash cleaner -->
         <activity
             android:name=".ui.SplashActivity"
             android:exported="true"
@@ -54,7 +54,7 @@
             </intent-filter>
         </activity>
 
-        <!-- 【修改 2】MainActivity 变为普通页面 (移除 intent-filter) -->
+        <!-- MainActivity is a normal page (no launcher filter) -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="false" />
@@ -112,11 +112,11 @@
         <activity
             android:name=".ui.chat.ChatListActivity"
             android:exported="false"
-            android:label="私聊" />
+            android:label="Direct Chat" />
         <activity
             android:name=".ui.chat.ChatActivity"
             android:exported="false"
-            android:label="聊天" />
+            android:label="Chat" />
 
         <service android:name="com.amap.api.location.APSService" />
 

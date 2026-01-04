@@ -15,11 +15,11 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
- * Retrofit 单例，负责提供统一的 APIService。
+ * Retrofit singleton that provides a shared ApiService.
  */
 public class ApiClient {
 
-    // 阿里云 ECS 网关地址
+    // Aliyun ECS gateway base URL
     private static final String BASE_URL = "http://47.94.183.236:3000/";
     private static ApiService apiService;
 

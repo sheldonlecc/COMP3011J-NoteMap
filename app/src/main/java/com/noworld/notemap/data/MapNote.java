@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Firestore 中 notes 文档的数据模型。
+ * Data model for a note (Firestore document style).
  */
 public class MapNote {
 
@@ -43,7 +43,7 @@ public class MapNote {
 
     private boolean isPrivate;
 
-    private String createTime; // 【新增】
+    private String createTime; // Added publish time field
 
     public MapNote() {
     }
@@ -79,10 +79,10 @@ public class MapNote {
         note.authorAvatarUrl = response.authorAvatarUrl;
         note.likeCount = response.likeCount;
 
-        // 【fromResponse 赋值】
+        // Copy response flags
         note.isPrivate = response.isPrivate;
 
-        note.createTime = response.createTime; // 【新增】赋值
+        note.createTime = response.createTime; // copy publish time
         return note;
     }
 
@@ -114,12 +114,11 @@ public class MapNote {
         );
         item.setImageUrls(imageUrls);
 
-        // 【toRegionItem 赋值】
-        // 关键：将状态传递给 RegionItem
+        // Pass flags/status into RegionItem
         item.setAuthorId(authorId);
-        item.setPrivate(isPrivate); // 调用 RegionItem 的 setPrivate 方法
+        item.setPrivate(isPrivate);
 
-        item.setCreateTime(createTime); // 【新增】传递给 RegionItem
+        item.setCreateTime(createTime); // propagate publish time
 
         return item;
     }
@@ -176,12 +175,12 @@ public class MapNote {
         this.likeCount = Math.max(0, likeCount);
     }
 
-    // 【新增 Getter】
+    // Getter
     public boolean isPrivate() {
         return isPrivate;
     }
 
-    // 【新增 Setter】
+    // Setter
     public void setPrivate(boolean isPrivate) {
         this.isPrivate = isPrivate;
     }

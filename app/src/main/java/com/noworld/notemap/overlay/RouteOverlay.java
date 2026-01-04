@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 路线图层叠加
+ * Base overlay for drawing routes.
  */
 public class RouteOverlay {
     protected List<Marker> stationMarkers = new ArrayList<Marker>();
@@ -39,7 +39,7 @@ public class RouteOverlay {
     }
 
     /**
-     * 去掉BusRouteOverlay上所有的Marker。
+     * Remove all markers from the overlay.
      *
      * @since V2.1.0
      */
@@ -84,9 +84,9 @@ public class RouteOverlay {
     }
 
     /**
-     * 给起点Marker设置图标，并返回更换图标的图片。如不用默认图片，需要重写此方法。
+     * Provide start marker icon; override to customize.
      *
-     * @return 更换的Marker图片。
+     * @return marker icon
      * @since V2.1.0
      */
     protected BitmapDescriptor getStartBitmapDescriptor() {
@@ -94,9 +94,9 @@ public class RouteOverlay {
     }
 
     /**
-     * 给终点Marker设置图标，并返回更换图标的图片。如不用默认图片，需要重写此方法。
+     * Provide end marker icon; override to customize.
      *
-     * @return 更换的Marker图片。
+     * @return marker icon
      * @since V2.1.0
      */
     protected BitmapDescriptor getEndBitmapDescriptor() {
@@ -104,9 +104,9 @@ public class RouteOverlay {
     }
 
     /**
-     * 给公交Marker设置图标，并返回更换图标的图片。如不用默认图片，需要重写此方法。
+     * Provide bus marker icon; override to customize.
      *
-     * @return 更换的Marker图片。
+     * @return marker icon
      * @since V2.1.0
      */
     protected BitmapDescriptor getBusBitmapDescriptor() {
@@ -114,9 +114,9 @@ public class RouteOverlay {
     }
 
     /**
-     * 给步行Marker设置图标，并返回更换图标的图片。如不用默认图片，需要重写此方法。
+     * Provide walking marker icon; override to customize.
      *
-     * @return 更换的Marker图片。
+     * @return marker icon
      * @since V2.1.0
      */
     protected BitmapDescriptor getWalkBitmapDescriptor() {
@@ -130,17 +130,17 @@ public class RouteOverlay {
     protected void addStartAndEndMarker() {
         startMarker = mAMap.addMarker((new MarkerOptions())
                 .position(startPoint).icon(getStartBitmapDescriptor())
-                .title("\u8D77\u70B9"));
+                .title("Start"));
         // startMarker.showInfoWindow();
 
         endMarker = mAMap.addMarker((new MarkerOptions()).position(endPoint)
-                .icon(getEndBitmapDescriptor()).title("\u7EC8\u70B9"));
+                .icon(getEndBitmapDescriptor()).title("End"));
         // mAMap.moveCamera(CameraUpdateFactory.newLatLngZoom(startPoint,
         // getShowRouteZoom()));
     }
 
     /**
-     * 移动镜头到当前的视角。
+     * Move camera to fit the current route.
      *
      * @since V2.1.0
      */
@@ -167,9 +167,9 @@ public class RouteOverlay {
     }
 
     /**
-     * 路段节点图标控制显示接口。
+     * Control visibility of node icons.
      *
-     * @param visible true为显示节点图标，false为不显示。
+     * @param visible true to show node icons, false to hide
      * @since V2.3.1
      */
     public void setNodeIconVisibility(boolean visible) {
@@ -215,8 +215,7 @@ public class RouteOverlay {
     }
 
     /**
-     * 自定义路线颜色。
-     * return 自定义路线颜色。
+     * Custom bus route color.
      *
      * @since V2.2.1
      */
@@ -232,4 +231,3 @@ public class RouteOverlay {
     // return 15;
     // }
 }
-

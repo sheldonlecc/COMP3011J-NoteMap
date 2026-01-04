@@ -16,8 +16,8 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.4">
 
-        <!-- App Logo 或 图标 (可选，我先放个占位符) -->
-        <!-- 如果你有 logo 图片，把 src 换成你的 @drawable/logo -->
+        <!-- App logo or icon (placeholder for now) -->
+        <!-- Replace src with your drawable if you have a logo -->
         <ImageView
             android:id="@+id/iv_splash_logo"
             android:layout_width="200dp"
@@ -26,7 +26,7 @@
             android:scaleType="fitCenter"
             android:layout_marginBottom="16dp" />
 
-        <!-- 主标题：NoteMap -->
+        <!-- Main title: NoteMap -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -36,7 +36,7 @@
             android:textStyle="bold"
             android:letterSpacing="0.05"/>
 
-        <!-- 中文 Slogan -->
+        <!-- Slogan -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -46,7 +46,7 @@
             android:textSize="18sp"
             android:letterSpacing="0.1"/>
 
-        <!-- 英文 Slogan -->
+        <!-- English slogan -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -59,7 +59,7 @@
 
     </LinearLayout>
 
-    <!-- 底部版权信息 (可选) -->
+    <!-- Optional footer copyright -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
