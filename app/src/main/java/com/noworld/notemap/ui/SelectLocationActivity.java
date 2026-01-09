@@ -71,7 +71,7 @@ public class SelectLocationActivity extends AppCompatActivity implements AMap.On
         try {
             geocodeSearch = new GeocodeSearch(this);
             geocodeSearch.setOnGeocodeSearchListener(this);
-            initSearch(); // 确保 geocodeSearch 已初始化后再绑定搜索监听
+            initSearch(); // Bind search listener after geocodeSearch is initialized.
         } catch (Exception e) {
             Toast.makeText(this, "Geocoder init failed", Toast.LENGTH_SHORT).show();
         }
@@ -105,7 +105,7 @@ public class SelectLocationActivity extends AppCompatActivity implements AMap.On
             RegeocodeQuery query = new RegeocodeQuery(new LatLonPoint(latLng.latitude, latLng.longitude), 200, GeocodeSearch.AMAP);
             geocodeSearch.getFromLocationAsyn(query);
         } else {
-            // 没有地理编码也直接展示经纬度，允许确认返回
+            // If geocoding is unavailable, show lat/lng and allow confirmation.
             String addr = String.format("Lat:%.5f Lng:%.5f", latLng.latitude, latLng.longitude);
             setSelectedLocation(latLng, addr);
         }

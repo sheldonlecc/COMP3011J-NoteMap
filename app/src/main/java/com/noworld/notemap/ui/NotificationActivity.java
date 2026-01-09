@@ -53,7 +53,8 @@ public class NotificationActivity extends AppCompatActivity {
     private void handleNotificationClick(NotificationItem item) {
         if (item == null) return;
 
-        // 以 targetType 为准：comment 时 targetId 是评论 ID，需要定位并高亮；否则按作品处理
+        // Use targetType: for comment, targetId is the comment ID (navigate and highlight);
+        // otherwise treat it as a post.
         if ("comment".equalsIgnoreCase(item.targetType) && !TextUtils.isEmpty(item.targetId)) {
             if (!TextUtils.isEmpty(item.noteId)) {
                 openNoteById(item.noteId, item.targetId);
@@ -63,7 +64,7 @@ public class NotificationActivity extends AppCompatActivity {
             return;
         }
 
-        // 作品类及其他：优先用 noteId，否则退回 targetId 打开作品
+        // For posts/others: prefer noteId, otherwise fall back to targetId.
         String noteId = !TextUtils.isEmpty(item.noteId) ? item.noteId : item.targetId;
         if (!TextUtils.isEmpty(noteId)) {
             openNoteById(noteId, null);

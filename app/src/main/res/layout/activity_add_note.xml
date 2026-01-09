@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".ui.AddNoteActivity">
 
-    <!-- 1. 顶部的工具栏 -->
+    <!-- 1. Top toolbar -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar_add_note"
         android:layout_width="match_parent"
@@ -18,7 +18,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 2. 标题栏 (带字数统计) -->
+    <!-- 2. Title input (with counter) -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/input_layout_title"
         android:layout_width="0dp"
@@ -39,7 +39,7 @@
             android:maxLength="50" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- 3. 横线分割 -->
+    <!-- 3. Divider line -->
     <View
         android:id="@+id/divider"
         android:layout_width="0dp"
@@ -50,7 +50,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 4. 故事部分 (带字数统计) -->
+    <!-- 4. Story input (with counter) -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/input_layout_story"
         android:layout_width="0dp"
@@ -73,7 +73,7 @@
             android:maxLength="400" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- 5. 添加图片 (入口按钮 + 预览列表) -->
+    <!-- 5. Add images (entry button + preview list) -->
     <androidx.cardview.widget.CardView
         android:id="@+id/card_add_image"
         android:layout_width="120dp"
@@ -105,7 +105,7 @@
         app:layout_constraintEnd_toEndOf="@id/input_layout_story"
         tools:listitem="@layout/item_image_preview" />
 
-    <!-- 6. 笔记类型栏 -->
+    <!-- 6. Note type row -->
     <RelativeLayout
         android:id="@+id/row_note_type"
         android:layout_width="0dp"
@@ -147,7 +147,7 @@
             android:alpha="0.5" />
     </RelativeLayout>
 
-    <!-- 7. 拍摄地点栏 -->
+    <!-- 7. Location row -->
     <RelativeLayout
         android:id="@+id/row_location"
         android:layout_width="0dp"
@@ -195,7 +195,7 @@
 
     </RelativeLayout>
 
-    <!-- 占位符: 发布按钮 -->
+    <!-- Publish button placeholder -->
     <Button
         android:id="@+id/btn_publish"
         android:layout_width="0dp"

@@ -1,19 +1,19 @@
 pluginManagement {
     repositories {
-        // 1. 【核心更改】将官方 Google 仓库提到最高优先级。
-        //    这确保了 Gradle 能优先从 Google 官方源查找 Android 和 Google 插件，
-        //    有效解决 com.google.gms.google-services 插件的查找问题。
+        // 1. Core change: put the official Google repo at the highest priority.
+        //    This lets Gradle resolve Android/Google plugins from the official source first,
+        //    which avoids com.google.gms.google-services lookup issues.
         google()
 
-        // 2. Gradle 官方插件门户
+        // 2. Gradle plugin portal
         gradlePluginPortal()
 
-        // 3. Maven 中心仓库
+        // 3. Maven Central
         mavenCentral()
 
-        // 4. 您的阿里云代理仓库作为补充，放在后面。
-        //    注意：我们移除了 'google' 块中自定义的 content 过滤器，
-        //    使用标准的 google() 更可靠。
+        // 4. Aliyun proxy repositories as a fallback.
+        //    Note: we removed the custom content filter under the google() block;
+        //    using the standard google() is more reliable.
         maven { url=uri ("https://maven.aliyun.com/repository/releases")}
         maven { url=uri ("https://maven.aliyun.com/repository/google")}
         maven { url=uri ("https://maven.aliyun.com/repository/central")}
@@ -22,19 +22,19 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
-    // 保持此设置，防止子项目定义自己的不兼容仓库
+    // Keep this setting to prevent subprojects from defining incompatible repos.
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        // 1. 【核心更改】将官方 Google 仓库提到最高优先级，用于依赖库的查找。
+        // 1. Core change: put the official Google repo at the highest priority for deps.
         google()
 
-        // 2. Maven 中心仓库
+        // 2. Maven Central
         mavenCentral()
 
         maven { url 'https://jitpack.io' }
 
 
-        // 3. 您的阿里云代理仓库作为补充，放在后面。
+        // 3. Aliyun proxy repositories as a fallback.
         maven { url=uri ("https://maven.aliyun.com/repository/releases")}
         maven { url=uri ("https://maven.aliyun.com/repository/google")}
         maven { url=uri ("https://maven.aliyun.com/repository/central")}

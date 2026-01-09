@@ -105,8 +105,8 @@ public class NoteDetailActivity extends AppCompatActivity {
     private static final String TAG = "NoteDetailActivity";
 
     /**
-     * 计算当前评论应该归属的“根父评论”ID（顶级评论 ID）。
-     * 如果 parentId 指向的是另一条子评论，则逐级向上找到顶级。
+     * Resolve the root parent comment ID (top-level).
+     * If parentId points to a child comment, walk up until the top-level parent.
      */
     private String resolveRootParentId(CommentItem item, java.util.Map<String, CommentItem> idMap) {
         if (item == null) return null;
@@ -125,7 +125,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         return current;
     }
 
-    // 【新增】标记当前用户是否是作者
+    // Mark whether the current user is the author.
     private boolean isAuthor = false;
 
     @Override
@@ -150,7 +150,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         initEvent();
 
         if (mNote != null) {
-            checkIsAuthor(); // 检查权限
+            checkIsAuthor(); // Check permissions.
             populateData();
         } else {
             Toast.makeText(this, "Failed to load note data", Toast.LENGTH_SHORT).show();
@@ -161,23 +161,23 @@ public class NoteDetailActivity extends AppCompatActivity {
         String currentUid = userStore.extractUidFromToken(tokenStore.getToken());
         if (currentUid == null) currentUid = userStore.getUid();
 
-        // 比较当前用户ID和作者ID
-        // 注意：RegionItem 里的 authorId 可能是 String
+        // Compare current user ID with author ID.
+        // Note: authorId in RegionItem may be a String.
         if (currentUid != null && mNote.getAuthorId() != null) {
             isAuthor = currentUid.equals(mNote.getAuthorId());
         }
 
-        // 调用 invalidateOptionsMenu 会触发 onCreateOptionsMenu 重新绘制菜单
+        // invalidateOptionsMenu triggers onCreateOptionsMenu to redraw the menu.
         invalidateOptionsMenu();
     }
 
     // ===========================================
-    // 【核心新增】菜单处理逻辑
+    // Menu handling logic.
     // ===========================================
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // 只有作者本人才能看到这三个点
+        // Only the author can see these options.
         if (isAuthor) {
             getMenuInflater().inflate(R.menu.menu_note_detail, menu);
             return true;
@@ -187,7 +187,7 @@ public class NoteDetailActivity extends AppCompatActivity {
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        // 动态改变菜单文字
+        // Update menu text dynamically.
         if (isAuthor) {
             MenuItem privacyItem = menu.findItem(R.id.action_privacy);
             if (privacyItem != null) {
@@ -219,15 +219,15 @@ public class NoteDetailActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    // 处理：修改可见性
+    // Handle visibility toggle.
     private void handleTogglePrivacy() {
-        boolean newStatus = !mNote.isPrivate(); // 目标状态
+        boolean newStatus = !mNote.isPrivate(); // Target status.
         noteRepository.setNotePrivacy(mNote.getNoteId(), newStatus, new AliNoteRepository.SimpleCallback() {
             @Override
             public void onSuccess() {
                 runOnUiThread(() -> {
                     mNote.setPrivate(newStatus);
-                    // 刷新菜单文字
+                    // Refresh menu text.
                     invalidateOptionsMenu();
                     String msg = newStatus ? "Set to private" : "Set to public";
                     Toast.makeText(NoteDetailActivity.this, msg, Toast.LENGTH_SHORT).show();
@@ -241,7 +241,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         });
     }
 
-    // 处理：删除笔记
+    // Handle note deletion.
     private void handleDeleteNote() {
         new AlertDialog.Builder(this)
                 .setTitle("Delete note")
@@ -252,7 +252,7 @@ public class NoteDetailActivity extends AppCompatActivity {
                         public void onSuccess() {
                             runOnUiThread(() -> {
                                 Toast.makeText(NoteDetailActivity.this, "Deleted", Toast.LENGTH_SHORT).show();
-                                finish(); // 关闭详情页，返回列表
+                                finish(); // Close detail and return to list.
                             });
                         }
 
@@ -266,21 +266,21 @@ public class NoteDetailActivity extends AppCompatActivity {
                 .show();
     }
 
-    // 处理：修改笔记内容
+    // Handle note editing.
     private void handleEditNote() {
         if (mNote == null) return;
 
         Intent intent = new Intent(this, AddNoteActivity.class);
 
-        // 【关键】传递当前的笔记数据，告诉 AddNoteActivity 进入编辑模式
+        // Pass the note data to enter edit mode in AddNoteActivity.
         intent.putExtra(AddNoteActivity.EXTRA_EDIT_NOTE_DATA, mNote);
 
-        // 使用 startActivityForResult 或 ActivityResultLauncher 来等待编辑结果
-        // 确保编辑完成后，当前详情页能刷新
-        startActivity(intent); // 简化处理，暂时直接启动
+        // Use startActivityForResult or ActivityResultLauncher to await edit results.
+        // Ensure the detail page refreshes after editing.
+        startActivity(intent); // Simplified: launch directly for now.
 
-        // ⚠️ 最佳实践：此处应使用 ActivityResultLauncher
-        // 待您确认功能可用后，可以替换为 ActivityResultLauncher 并在 onResume 刷新数据
+        // Best practice: use ActivityResultLauncher here.
+        // Once confirmed, replace and refresh data in onResume.
     }
 
     // ===========================================
@@ -372,7 +372,7 @@ public class NoteDetailActivity extends AppCompatActivity {
 
         if (tvDetailTime != null) {
             String time = mNote.getCreateTime();
-            // 【关键修改】如果时间为空，显示空字符串而不是旧的硬编码日期
+            // If time is empty, show an empty string instead of a hardcoded date.
             tvDetailTime.setText("Published at " + (time != null && !time.isEmpty() ? time : "Unknown time"));
         }
 
@@ -537,7 +537,7 @@ public class NoteDetailActivity extends AppCompatActivity {
             List<CommentItem> childList = childMap.get(parent.getId());
             if (childList == null || childList.isEmpty()) continue;
             int shown = replyShownCount.getOrDefault(parent.getId(), 0);
-            // 初始折叠：如果子评论>1且尚未记录，则设为0（不展示）
+            // Initial collapse: if children > 1 and not recorded, set to 0 (hidden).
             if (!replyShownCount.containsKey(parent.getId()) && childList.size() > 1) {
                 shown = 0;
             }
@@ -695,7 +695,7 @@ public class NoteDetailActivity extends AppCompatActivity {
             });
         } else if (targetCommentScrollAttempts < 3) {
             targetCommentScrollAttempts++;
-            // 再尝试几次，等待布局/数据完全就绪
+            // Retry a few times until layout/data is ready.
             rvComments.postDelayed(this::maybeScrollToTargetComment, 120);
         }
     }
@@ -719,7 +719,7 @@ public class NoteDetailActivity extends AppCompatActivity {
             highlightAttempts = 0;
             View targetView = vh.itemView;
             Drawable originalBg = targetView.getBackground();
-            int highlightColor = 0x33FFC107; // 半透明亮黄
+            int highlightColor = 0x33FFC107; // Semi-transparent yellow.
             targetView.setBackgroundColor(highlightColor);
             targetView.setAlpha(0.7f);
             targetView.animate().alpha(1f).setDuration(200).setStartDelay(200).withEndAction(() ->
@@ -807,7 +807,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         if (mNote == null) return;
         String parentId;
         if (replyTarget != null) {
-            // 统一指向顶级父评论，避免多级回复丢失
+            // Normalize to top-level parent to avoid multi-level reply loss.
             String targetParent = normalizeParentId(replyTarget.getParentId());
             parentId = targetParent != null ? targetParent : replyTarget.getId();
         } else {
@@ -844,7 +844,7 @@ public class NoteDetailActivity extends AppCompatActivity {
         if (commentDialog != null && commentDialog.isShowing()) {
             commentDialog.dismiss();
         }
-        // 保持当前父评论的展开状态，不强制展开
+        // Keep current parent expansion state; do not force expand.
         Log.d(TAG, "submitComment displayItem parentId=" + displayItem.getParentId() + " isReply=" + displayItem.isReply());
     });
 }
@@ -877,7 +877,7 @@ public class NoteDetailActivity extends AppCompatActivity {
     private void onToggleReplies(String parentId, boolean expand) {
         if (parentId == null) return;
         int current = replyShownCount.getOrDefault(parentId, 0);
-        // 若当前为0且子评论超过1，意味着初始折叠，第一次点击显示3条
+        // If count is 0 and children > 1, initial collapsed state shows 3 on first tap.
         replyShownCount.put(parentId, current + 3);
         rebuildDisplayComments();
     }
@@ -967,11 +967,11 @@ public class NoteDetailActivity extends AppCompatActivity {
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT));
 
-            // 【核心修改】
-            // 原来是 CENTER_CROP (填满并裁切)，现在改为 FIT_CENTER (完整显示)
+            // Core change:
+            // Use FIT_CENTER (full display) instead of CENTER_CROP (fill/crop).
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
 
-            // 可选：设置一个背景色（比如黑色或灰色），这样如果图片比例和容器不一样，留白部分不会太突兀
+            // Optional: set a background color so letterboxing looks less abrupt.
             // iv.setBackgroundColor(android.graphics.Color.BLACK);
 
             return new PhotoVH(iv);
@@ -996,9 +996,9 @@ public class NoteDetailActivity extends AppCompatActivity {
                 super(itemView);
                 this.imageView = itemView;
 
-                // 【最终修正：恢复原始的点击逻辑】
+                // Final fix: restore original click behavior.
                 itemView.setOnClickListener(v -> {
-                    // 核心：调用 PhotoPagerAdapter 构造函数中传入的 Runnable (即 openFullImage())
+                    // Core: invoke the Runnable passed to PhotoPagerAdapter (openFullImage()).
                     PhotoPagerAdapter.this.onClick.run();
                 });
             }

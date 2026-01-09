@@ -76,13 +76,13 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     private AliNoteRepository noteRepository;
     private TokenStore tokenStore;
     private UserStore userStore;
-    private boolean isPublishing = false; // 用于发布/保存时的状态
+    private boolean isPublishing = false; // Track publish/save state.
 
     public static final String EXTRA_EDIT_NOTE_DATA = "EDIT_NOTE_DATA";
 
-    // 存储当前编辑的笔记数据
+    // Current note being edited.
     private RegionItem mEditNote;
-    // 标记是否处于编辑模式
+    // Whether we are in edit mode.
     private boolean isEditMode = false;
 
     @Override
@@ -90,7 +90,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_note);
 
-        // 1. 绑定控件
+        // 1. Bind views.
         toolbar = findViewById(R.id.toolbar_add_note);
         etTitle = findViewById(R.id.et_title);
         etStory = findViewById(R.id.et_story);
@@ -102,7 +102,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         tvLocationValue = findViewById(R.id.tv_location_value);
         btnPublish = findViewById(R.id.btn_publish);
 
-        // 2. 设置顶部工具栏
+        // 2. Set up toolbar.
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -113,25 +113,25 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         tokenStore = TokenStore.getInstance(this);
         userStore = UserStore.getInstance(this);
 
-        // 3. 设置图片预览列表
+        // 3. Set up image preview list.
         rvImagePreview.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
 
-        // 【核心修改】这里传入了删除回调
+        // Attach delete callback for previews.
         imagePreviewAdapter = new ImagePreviewAdapter(selectedImageUris, position -> {
-            // 当点击删除按钮时触发
+            // Triggered when delete is tapped.
             if (position >= 0 && position < selectedImageUris.size()) {
-                selectedImageUris.remove(position); // 从数据源移除
-                imagePreviewAdapter.notifyItemRemoved(position); // 通知列表刷新
-                imagePreviewAdapter.notifyItemRangeChanged(position, selectedImageUris.size()); // 刷新后续位置索引
+                selectedImageUris.remove(position); // Remove from data set.
+                imagePreviewAdapter.notifyItemRemoved(position); // Refresh list.
+                imagePreviewAdapter.notifyItemRangeChanged(position, selectedImageUris.size()); // Update indices.
             }
         });
         rvImagePreview.setAdapter(imagePreviewAdapter);
 
-        // 4. 获取位置
+        // 4. Read current location.
         currentLat = getIntent().getDoubleExtra("CURRENT_LAT", 0);
         currentLng = getIntent().getDoubleExtra("CURRENT_LNG", 0);
 
-        // 5. 初始化功能
+        // 5. Initialize helpers.
         initImagePicker();
         initMediaPermission();
         initLocationPicker();
@@ -143,12 +143,12 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             e.printStackTrace();
         }
 
-        // 【新增逻辑】检查是否为编辑模式
+        // Check if we are editing an existing note.
         if (getIntent().hasExtra(EXTRA_EDIT_NOTE_DATA)) {
             mEditNote = (RegionItem) getIntent().getSerializableExtra(EXTRA_EDIT_NOTE_DATA);
             if (mEditNote != null) {
                 isEditMode = true;
-                populateDataForEdit(); // 预填充数据
+                populateDataForEdit(); // Prefill data.
             }
         }
 
@@ -215,7 +215,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         ivAddImage.setOnClickListener(v -> ensureMediaPermissionAndPickImage());
         rowNoteType.setOnClickListener(v -> showNoteTypePicker());
         rowLocation.setOnClickListener(v -> showLocationChoiceDialog());
-        // 【核心修改】：点击事件调用 handlePublishOrSaveClick
+        // Click triggers unified publish/save handler.
         btnPublish.setOnClickListener(v -> {
             if (!isPublishing) {
                 handlePublishOrSaveClick();
@@ -314,7 +314,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         return super.onOptionsItemSelected(item);
     }
 
-    // 【核心修改】将原有的 publishNote() 逻辑整合并重命名为 handlePublishOrSaveClick
+    // Consolidated publishNote() logic into handlePublishOrSaveClick().
     private void handlePublishOrSaveClick() {
         String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
         String story = etStory.getText() != null ? etStory.getText().toString().trim() : "";
@@ -330,7 +330,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
             return;
         }
 
-        // --- 编辑模式下，只需要校验标题和正文，图片和位置可以为空（如果保持不变） ---
+        // Edit mode: only validate title and content; images/location can be unchanged.
         if (isEditMode) {
             updateNoteContent(title, story);
             return;
@@ -338,7 +338,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         // ----------------------------------------------------------------------
 
 
-        // --- 发布模式下的额外校验 ---
+        // Extra validation for publish mode.
         if (TextUtils.isEmpty(noteType)) {
             Toast.makeText(this, "Please select a note type", Toast.LENGTH_SHORT).show();
             return;
@@ -366,7 +366,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
         final String locationNameFinal = TextUtils.isEmpty(locationName) ? "Unknown location" : locationName;
         setPublishing(true, "Publishing...");
 
-        // 发布模式：需要上传图片
+        // Publish mode: upload images first.
         uploadAllImages(selectedImageUris, new UploadAllCallback() {
             @Override
             public void onSuccess(List<String> imageUrls) {
@@ -415,7 +415,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     }
 
     /**
-     * 【新增方法】更新笔记内容（仅标题和描述）
+     * Update note content (title and description only).
      */
     private void updateNoteContent(String newTitle, String newDescription) {
         if (mEditNote == null || mEditNote.getNoteId() == null) {
@@ -425,7 +425,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
         setPublishing(true, "Saving...");
 
-        // 仅发送修改后的标题和描述
+        // Send only the updated title and description.
         UpdateNoteRequest request = new UpdateNoteRequest(newTitle, newDescription);
 
         noteRepository.updateNote(mEditNote.getNoteId(), request, new AliNoteRepository.SimpleCallback() {
@@ -434,7 +434,7 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
                 runOnUiThread(() -> {
                     Toast.makeText(AddNoteActivity.this, "Changes saved", Toast.LENGTH_SHORT).show();
 
-                    // 设置结果，通知上一个 Activity (NoteDetailActivity) 刷新
+                    // Set result so the previous Activity can refresh.
                     setResult(RESULT_OK);
                     finish();
                 });
@@ -476,11 +476,11 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     public void onGeocodeSearched(GeocodeResult geocodeResult, int i) { }
 
     // ===========================================
-    // 【核心修改】更新后的 ImagePreviewAdapter
+    // Updated ImagePreviewAdapter
     // ===========================================
     private static class ImagePreviewAdapter extends RecyclerView.Adapter<ImagePreviewAdapter.ImageVH> {
 
-        // ... (保持不变)
+        // ... (unchanged)
         private final List<Uri> data;
         private final OnDeleteListener deleteListener;
 
@@ -502,15 +502,15 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
 
         @Override
         public void onBindViewHolder(@NonNull ImageVH holder, int position) {
-            // 【重要：兼容 Uri 和 String URL 回显】
+            // Important: support Uri and String URL for preview.
             Object item = data.get(position);
 
             Glide.with(holder.iv.getContext())
-                    .load(item) // Glide 能够处理 Uri 或 String URL
+                    .load(item) // Glide supports Uri or String URL.
                     .centerCrop()
                     .into(holder.iv);
 
-            // 绑定删除按钮点击事件
+            // Bind delete click.
             holder.ivDelete.setOnClickListener(v -> {
                 if (deleteListener != null) {
                     deleteListener.onDelete(holder.getAdapterPosition());
@@ -541,39 +541,35 @@ public class AddNoteActivity extends AppCompatActivity implements GeocodeSearch.
     }
 
     /**
-     * 【核心修改】预填充数据，并处理图片回显
+     * Prefill data for edit mode and handle image preview.
      */
     private void populateDataForEdit() {
         if (mEditNote == null) return;
 
-        // 1. 标题和描述
+        // 1. Title and description.
         etTitle.setText(mEditNote.getTitle());
-        etStory.setText(mEditNote.getDescription()); // 修正：使用 etStory 对应 description
+        etStory.setText(mEditNote.getDescription()); // Use etStory for description.
         tvNoteTypeValue.setText(mEditNote.getNoteType());
 
-        // 2. 位置信息
-        tvLocationValue.setText(mEditNote.getLocationName()); // 修正：使用 tvLocationValue 对应 locationName
-        // 更新当前经纬度，以便保存时使用 (虽然编辑内容不改位置，但保持一致性)
+        // 2. Location info.
+        tvLocationValue.setText(mEditNote.getLocationName()); // Use tvLocationValue for locationName.
+        // Keep lat/lng for consistency (even if location doesn't change).
         currentLat = mEditNote.getLatitude();
         currentLng = mEditNote.getLongitude();
 
-        // 3. 图片信息：将已有的图片 URL 转换成 Uri 形式，添加到 selectedImageUris 中
-        // 注意：这里需要一个通用的 List<Object> 来兼容 Uri 和 String URL，
-        // 但为了代码简洁，我们假定 URL 可以被 Glide 兼容加载。
-        // 如果您希望编辑图片，您应该在这里将 URL 映射为可删除的本地 Uri，但那太复杂了。
-        // 我们只做回显：
+        // 3. Images: existing URLs could be converted to Uri for preview.
+        // Note: using List<Object> would be needed to mix Uri and String URLs.
+        // For simplicity, we only describe the approach here.
         if (mEditNote.getImageUrls() != null) {
             for (String url : mEditNote.getImageUrls()) {
-                // 这里我们使用 Uri.parse 将 URL 视为 Uri，这是 Glide 兼容的方式
-                // 但在 selectedImageUris 中存储的还是 Uri，所以 Adapter 要适配 List<Object>
-                // 为了简化，我们只回显，但不允许在编辑模式下增加或删除已有的图片（否则需要复杂的 OSS 删除逻辑）
-                // ！！！ 暂时跳过图片回显，只展示文字和位置
-                // 如果需要回显，Adapter 的 List<Uri> 必须改成 List<Object> 才能同时存储 Uri 和 String URL
-                // 暂时保持图片列表为空，让用户上传新图片覆盖旧图片 (这是简化的编辑逻辑)
+                // We could use Uri.parse(url) for Glide compatibility.
+                // But selectedImageUris is Uri-only, so the adapter would need List<Object>.
+                // To keep edit logic simple, we skip image preview here.
+                // Users can upload new images to replace old ones.
             }
         }
 
-        // 4. 按钮文字和标题
+        // 4. Button text and title.
         btnPublish.setText("Save changes");
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Edit note");

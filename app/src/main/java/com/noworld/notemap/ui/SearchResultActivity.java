@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 搜索结果页：上半屏展示地图位置，下方 BottomSheet 展示相关笔记列表。
+ * Search results page: map on top, related notes in a bottom sheet list.
  */
 public class SearchResultActivity extends AppCompatActivity {
 

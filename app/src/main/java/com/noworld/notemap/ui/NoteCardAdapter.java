@@ -56,7 +56,7 @@ public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHo
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // 加载卡片布局
+        // Inflate the card layout.
         View view = LayoutInflater.from(mContext).inflate(R.layout.item_note_card, parent, false);
         return new ViewHolder(view);
     }
@@ -65,40 +65,40 @@ public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHo
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         RegionItem note = mNotesList.get(position);
 
-        // 绑定数据
+        // Bind data.
         holder.tvTitle.setText(note.getTitle());
         holder.tvAuthorName.setText(note.getAuthorName());
         holder.tvLikeCount.setText(String.valueOf(resolveLikeCount(note)));
         ensureLikeStateFromStore(note);
         updateLikeIcon(holder, note);
 
-        // [依赖 Member B] 加载图片 (使用 Glide)
-        // 封面图 (占位符)
+        // Load images with Glide.
+        // Cover image (placeholder).
         Glide.with(mContext)
-                .load(buildOssModel(note.getPhotoUrl())) // Member B 需提供 URL
-                .placeholder(R.drawable.ic_car) // 您的占位图
-                .error(R.drawable.ic_car) // 加载失败图
+                .load(buildOssModel(note.getPhotoUrl())) // URL provided by backend.
+                .placeholder(R.drawable.ic_car) // Placeholder.
+                .error(R.drawable.ic_car) // Error fallback.
                 .into(holder.ivPhoto);
 
-        // 作者头像 (占位符)
+        // Author avatar (placeholder).
         Glide.with(mContext)
-                .load(buildOssModel(note.getAuthorAvatarUrl())) // Member B 需提供 URL
-                .placeholder(R.drawable.ic_profile) // 您的占位图
+                .load(buildOssModel(note.getAuthorAvatarUrl())) // URL provided by backend.
+                .placeholder(R.drawable.ic_profile) // Placeholder.
                 .error(R.drawable.ic_profile)
-                .circleCrop() // 设置为圆形头像
+                .circleCrop() // Circle avatar.
                 .into(holder.ivAuthorAvatar);
 
-        // [核心交互] 设置卡片点击事件
+        // Core interaction: open note details on card tap.
         holder.itemView.setOnClickListener(v -> {
 
-            // [修改] 启动 NoteDetailActivity (笔记正文页)
+            // Launch NoteDetailActivity.
             Intent intent = new Intent(mContext, NoteDetailActivity.class);
-            // 【关键】将整个笔记对象传递过去
+            // Pass the full note object.
             intent.putExtra(NoteDetailActivity.EXTRA_NOTE_DATA, note);
             mContext.startActivity(intent);
 
-            // [删除] 临时提示
-            // Toast.makeText(mContext, "点击了笔记: " + note.getTitle(), Toast.LENGTH_SHORT).show();
+            // Removed debug toast.
+            // Toast.makeText(mContext, "Clicked note: " + note.getTitle(), Toast.LENGTH_SHORT).show();
         });
 
         holder.ivAuthorAvatar.setOnClickListener(v -> openProfile(note));
@@ -112,7 +112,7 @@ public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHo
         return mNotesList.size();
     }
 
-    // ViewHolder 类
+    // ViewHolder class.
     public static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView ivPhoto;
         TextView tvTitle;
@@ -146,7 +146,7 @@ public class NoteCardAdapter extends RecyclerView.Adapter<NoteCardAdapter.ViewHo
                 note.setLikeCount(likeCount);
                 likedStore.toggle(getCurrentUid(), note.getNoteId(), liked);
                 likedStore.saveLikeCount(note.getNoteId(), likeCount);
-                // 立即同步 UI 文本，避免需要完整刷新列表
+                // Update UI immediately to avoid full list refresh.
                 holder.tvLikeCount.setText(String.valueOf(likeCount));
                 int position = holder.getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {

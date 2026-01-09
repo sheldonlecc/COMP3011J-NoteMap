@@ -28,7 +28,7 @@ import androidx.core.content.ContextCompat;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.SimpleTarget;
 import com.bumptech.glide.request.transition.Transition;
-import com.github.chrisbanes.photoview.PhotoView; // 【关键】导入 PhotoView
+import com.github.chrisbanes.photoview.PhotoView; // Key import: PhotoView
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,7 +38,7 @@ import java.util.Objects;
 import com.noworld.notemap.R;
 
 /**
- * 全屏图片查看器，支持图片缩放和水印保存功能。
+ * Full-screen image viewer with zooming and watermark saving.
  */
 public class PictureActivity extends AppCompatActivity {
 
@@ -46,7 +46,7 @@ public class PictureActivity extends AppCompatActivity {
     public static final String EXTRA_AUTHOR_NAME = "EXTRA_AUTHOR_NAME";
     private static final int PERMISSION_REQUEST_CODE = 101;
 
-    // 【修改】将 ImageView 替换为 PhotoView，实现双指缩放
+    // Replace ImageView with PhotoView to support pinch-to-zoom.
     private PhotoView iv_picture;
     private String mImageUrl;
     private String mAuthorName;
@@ -57,17 +57,17 @@ public class PictureActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_picture);
 
-        // 获取传递的数据
+        // Read input data.
         mImageUrl = getIntent().getStringExtra(EXTRA_IMAGE_URL);
         mAuthorName = getIntent().getStringExtra(EXTRA_AUTHOR_NAME);
 
         initView();
         initPicture();
 
-        // 点击退出
+        // Tap to exit.
         iv_picture.setOnClickListener(v -> finish());
 
-        // 长按监听：弹出确认对话框
+        // Long-press to show save confirmation.
         iv_picture.setOnLongClickListener(v -> {
             showSaveConfirmDialog();
             return true;
@@ -75,7 +75,7 @@ public class PictureActivity extends AppCompatActivity {
     }
 
     private void initView() {
-        // 【修改】查找 PhotoView 实例
+        // Find PhotoView instance.
         iv_picture = findViewById(R.id.iv_picture);
     }
 
@@ -87,13 +87,13 @@ public class PictureActivity extends AppCompatActivity {
                     .error(R.drawable.ic_car)
                     .into(iv_picture);
         } else {
-            // 加载默认图片作为错误处理
+            // Load a default image as fallback.
             Glide.with(this).load(R.drawable.ic_car).into(iv_picture);
         }
     }
 
     /**
-     * 弹窗确认是否保存图片。
+     * Show a confirmation dialog before saving.
      */
     private void showSaveConfirmDialog() {
         new AlertDialog.Builder(this)
@@ -107,17 +107,17 @@ public class PictureActivity extends AppCompatActivity {
     }
 
     /**
-     * 检查并请求存储权限，然后开始保存图片。
+     * Check/request storage permission, then save the image.
      */
     private void requestStoragePermissionAndSaveImage() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
-            // 请求权限
+            // Request permission.
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     PERMISSION_REQUEST_CODE);
         } else {
-            // 已有权限，直接保存
+            // Permission already granted; save directly.
             downloadImageAndSave();
         }
     }
@@ -135,7 +135,7 @@ public class PictureActivity extends AppCompatActivity {
     }
 
     /**
-     * 使用 Glide 下载图片并准备添加水印。
+     * Download the image with Glide before adding a watermark.
      */
     private void downloadImageAndSave() {
         Toast.makeText(this, "Saving image...", Toast.LENGTH_SHORT).show();
@@ -151,7 +151,7 @@ public class PictureActivity extends AppCompatActivity {
     }
 
     /**
-     * 异步任务：添加水印并保存图片。
+     * Async task: add watermark and save the image.
      */
     private static class SaveImageTask extends AsyncTask<Bitmap, Void, Boolean> {
         private final Context context;
@@ -182,10 +182,10 @@ public class PictureActivity extends AppCompatActivity {
     }
 
     /**
-     * 将 Bitmap 保存到图库 (Gallery)。
+     * Save a bitmap to the gallery.
      */
     private static boolean saveBitmapToGallery(Context context, Bitmap bitmap) {
-        // 创建文件路径
+        // Create file path.
         File storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         if (!storageDir.exists() && !storageDir.mkdirs()) {
             Log.e("PictureActivity", "Unable to create image directory");
@@ -199,7 +199,7 @@ public class PictureActivity extends AppCompatActivity {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream);
             outputStream.flush();
 
-            // 通知媒体库更新
+            // Notify MediaStore to refresh.
             Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
             mediaScanIntent.setData(Uri.fromFile(imageFile));
             context.sendBroadcast(mediaScanIntent);
@@ -211,7 +211,7 @@ public class PictureActivity extends AppCompatActivity {
     }
 
     /**
-     * 添加美观的水印。
+     * Add a styled watermark.
      */
     private static Bitmap addWatermark(Bitmap originalBitmap, String rawAuthorName) {
         int width = originalBitmap.getWidth();
@@ -220,47 +220,47 @@ public class PictureActivity extends AppCompatActivity {
         Canvas canvas = new Canvas(newBitmap);
         canvas.drawBitmap(originalBitmap, 0, 0, null);
 
-        // ------------------ 水印配置 ------------------
+        // ------------------ Watermark configuration ------------------
         String authorName = (rawAuthorName != null && !rawAuthorName.isEmpty()) ? rawAuthorName : "Unknown author";
         String watermarkText = "NoteApp By " + authorName;
 
-        // 尺寸和位置
-        float extMargin = 40f; // 外部边距
-        float intPadding = 20f; // 内部文字边距
-        float cornerRadius = 15f; // 圆角半径
+        // Size and position.
+        float extMargin = 40f; // Outer margin.
+        float intPadding = 20f; // Inner text padding.
+        float cornerRadius = 15f; // Corner radius.
 
-        // 文本画笔
+        // Text paint.
         Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setColor(Color.BLACK);
-        textPaint.setTextSize(40f); // 字体大小
-        textPaint.setTypeface(Typeface.DEFAULT_BOLD); // 粗体
+        textPaint.setTextSize(40f); // Font size.
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD); // Bold.
 
-        // 测量文本大小
+        // Measure text size.
         Paint.FontMetrics fm = textPaint.getFontMetrics();
         float textWidth = textPaint.measureText(watermarkText);
         float textHeight = fm.bottom - fm.top;
 
-        // 背景框尺寸
+        // Background box size.
         float boxWidth = textWidth + intPadding * 2;
         float boxHeight = textHeight + intPadding * 2;
 
-        // 背景框位置（右下角定位）
+        // Background box position (bottom-right).
         float boxLeft = width - extMargin - boxWidth;
         float boxTop = height - extMargin - boxHeight;
         float boxRight = width - extMargin;
         float boxBottom = height - extMargin;
 
-        // 绘制背景框
+        // Draw background box.
         Paint boxPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        boxPaint.setColor(Color.argb(200, 255, 255, 255)); // 半透明白色
+        boxPaint.setColor(Color.argb(200, 255, 255, 255)); // Semi-transparent white.
         boxPaint.setStyle(Paint.Style.FILL);
 
-        // 绘制圆角矩形
+        // Draw rounded rectangle.
         RectF rect = new RectF(boxLeft, boxTop, boxRight, boxBottom);
         canvas.drawRoundRect(rect, cornerRadius, cornerRadius, boxPaint);
 
-        // 绘制文本
-        // 垂直居中修正：使用 baseline 确保文字在 box 中居中
+        // Draw text.
+        // Vertical centering: use baseline to keep text centered in the box.
         float textX = boxLeft + intPadding;
         float textY = boxTop + intPadding + (textHeight - fm.bottom + fm.top) / 2 - fm.top;
 

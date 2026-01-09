@@ -10,7 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.noworld.notemap.R;
 
 /**
- * 启动页 (Splash Screen)
+ * Splash screen.
  */
 public class SplashActivity extends AppCompatActivity {
 
@@ -19,19 +19,19 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
-        // 延迟 2000 毫秒 (2秒) 后跳转
+        // Navigate after a 2000 ms (2s) delay.
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            // 1. 启动主页
-            // 注意：这里原来可能是 LoginActivity，如果你想让用户每次都先看登录页，就改成 LoginActivity.class
-            // 但通常逻辑是：Splash -> 判断是否登录 -> (MainActivity 或 LoginActivity)
-            // 为了简单，我们先直接跳 MainActivity，因为 MainActivity 里你有判断登录的逻辑
+            // 1. Launch the main screen.
+            // Note: this could be LoginActivity if you want users to log in first.
+            // Typical flow: Splash -> check login -> (MainActivity or LoginActivity).
+            // For simplicity, we go to MainActivity and let it handle login checks.
             Intent intent = new Intent(SplashActivity.this, MainActivity.class);
             startActivity(intent);
 
-            // 2. 关闭当前页面 (这样用户按返回键不会回到启动页)
+            // 2. Close this screen so Back does not return to splash.
             finish();
 
-            // 增加一个淡入淡出的转场动画，看起来更顺滑
+            // Add a fade transition for smoother UX.
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         }, 2000);
     }

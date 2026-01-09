@@ -15,11 +15,11 @@ import com.noworld.notemap.R;
 import java.util.List;
 
 /**
- * 发布笔记时的图片预览适配器
+ * Image preview adapter for note publishing.
  */
 public class ImagePreviewAdapter extends RecyclerView.Adapter<ImagePreviewAdapter.ImageViewHolder> {
 
-    // 定义一个回调接口，当点击删除时通知 Activity
+    // Callback to notify the Activity when a delete is triggered.
     public interface OnDeleteClickListener {
         void onDelete(int position);
     }
@@ -35,7 +35,7 @@ public class ImagePreviewAdapter extends RecyclerView.Adapter<ImagePreviewAdapte
     @NonNull
     @Override
     public ImageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // 这里加载我们在上一步修改好的 item_image_preview.xml
+        // Inflate item_image_preview.xml.
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_image_preview, parent, false);
         return new ImageViewHolder(view);
@@ -45,16 +45,16 @@ public class ImagePreviewAdapter extends RecyclerView.Adapter<ImagePreviewAdapte
     public void onBindViewHolder(@NonNull ImageViewHolder holder, int position) {
         Uri uri = imageUris.get(position);
 
-        // 1. 使用 Glide 加载您选中的图片
+        // 1. Load the selected image with Glide.
         Glide.with(holder.itemView.getContext())
                 .load(uri)
                 .centerCrop()
                 .into(holder.ivImage);
 
-        // 2. 设置红色叉号的点击事件
+        // 2. Handle the delete icon click.
         holder.ivDelete.setOnClickListener(v -> {
             if (deleteListener != null) {
-                // 通知 Activity：第几个图片被删了
+                // Notify the Activity which image was removed.
                 deleteListener.onDelete(holder.getAdapterPosition());
             }
         });
@@ -65,14 +65,14 @@ public class ImagePreviewAdapter extends RecyclerView.Adapter<ImagePreviewAdapte
         return imageUris.size();
     }
 
-    // ViewHolder 类，绑定 XML 里的控件
+    // ViewHolder for binding XML views.
     static class ImageViewHolder extends RecyclerView.ViewHolder {
         ImageView ivImage;
         ImageView ivDelete;
 
         public ImageViewHolder(@NonNull View itemView) {
             super(itemView);
-            // 绑定 item_image_preview.xml 里的 ID
+            // Bind IDs from item_image_preview.xml.
             ivImage = itemView.findViewById(R.id.iv_image);
             ivDelete = itemView.findViewById(R.id.iv_delete);
         }
