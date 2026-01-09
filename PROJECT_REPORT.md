@@ -21,6 +21,17 @@ The project integrates several open-source or third-party libraries. Below are t
   - Used for list screens and UI composition.
   - Modules: adapters in `ui.adapter.*`, list-based Activities.
 
+## 1.1 Emphasis: Features Implemented by Us Without AMap SDK
+The following features are fully self-implemented and do not depend on the AMap SDK:
+- Notes: list fetch and mapping, publish/edit flow, image upload, detail view, author permissions.
+- Likes: like/unlike requests, local cache synchronization, UI updates.
+- Comments: threaded display, reply/delete/like, pagination, and comment targeting.
+- Notifications: list, unread badge logic, mark read, and deep linking to notes/comments.
+- Private chat (offline): conversation list, unread counts, text/image/video messages, local storage.
+- User features: login/register, token storage, profile edit, avatar/background update, my notes/likes.
+- Filtering: keyword/type filtering, list refresh, empty-state handling.
+- Backend and database setup: self-deployed backend services and database on an Aliyun server.
+
 ## 2) Open-Source Integration: Technical Details
 ### 2.1 Retrofit + OkHttp + Gson
 - Retrofit defines endpoints in `data.ApiService`.
